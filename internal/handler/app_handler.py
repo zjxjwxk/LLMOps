@@ -6,8 +6,9 @@
 @Time   :   2026/2/21 17:31
 @File   :   app_handler.py
 """
-from flask import request
 from openai import OpenAI
+
+from internal.schema.app_schema import CompletionReq
 
 
 class AppHandler:
@@ -15,8 +16,11 @@ class AppHandler:
 
     def completion(self):
         """聊天接口"""
-        # 1. 从请求中获取输入
-        query = request.json.get("query")
+
+        # 1. 从POST请求中获取输入
+        req = CompletionReq()
+        if not req.validate():
+            return req.errors
 
         # 2. 构建OpenAI客户端，并发起请求
         # （自动从环境变量获取 OPENAI_API_KEY 和 OPENAI_BASE_URL）
@@ -27,7 +31,7 @@ class AppHandler:
             model="kimi-k2-0905-preview",
             messages=[
                 {"role": "system", "content": "你是 Kimi，由 Moonshot AI 提供的人工智能助手"},
-                {"role": "user", "content": query}
+                {"role": "user", "content": req.query.data},
             ]
         )
 

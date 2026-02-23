@@ -6,3 +6,6 @@
 @Time   :   2026/2/20 16:00
 @File   :   __init__.py
 """
+from config.config import Config
+ 
+__all__ = ['Config']

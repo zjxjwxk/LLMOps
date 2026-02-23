@@ -8,6 +8,7 @@
 """
 from openai import OpenAI
 
+from internal.exception import NotFoundException
 from internal.schema.app_schema import CompletionReq
 from pkg.response import validate_error_json, success_json
 
@@ -40,4 +41,5 @@ class AppHandler:
         return success_json({"content": content})
 
     def ping(self):
-        return {"ping": "pong"}
+        raise NotFoundException("Pong not found")
+        # return {"ping": "pong"}

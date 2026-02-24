@@ -35,7 +35,7 @@ class Http(Flask):
             return json(Response(
                 code=error.code,
                 message=error.message,
-                data=error.data if error.data else {},
+                data=error.data if error.data is not None else {},
             ))
 
         # 2. 非自定义异常

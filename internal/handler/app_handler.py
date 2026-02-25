@@ -6,15 +6,43 @@
 @Time   :   2026/2/21 17:31
 @File   :   app_handler.py
 """
+import uuid
+from dataclasses import dataclass
+
+from injector import inject
 from openai import OpenAI
 
 from internal.exception import NotFoundException
 from internal.schema.app_schema import CompletionReq
-from pkg.response import validate_error_json, success_json
+from internal.service import AppService
+from pkg.response import validate_error_json, success_json, success_message
 
 
+@inject
+@dataclass
 class AppHandler:
     """应用控制器"""
+    appService: AppService
+
+    def create_app(self):
+        """创建应用"""
+        app = self.appService.create_app()
+        return success_message(f"应用创建成功，id={app.id}")
+
+    def get_app(self, id: uuid.UUID):
+        """查询应用"""
+        app = self.appService.get_app(id)
+        return success_message(f"应用获取成功，name={app.name}")
+
+    def update_app(self, id: uuid.UUID):
+        """更新应用"""
+        app = self.appService.update_app(id)
+        return success_message(f"应用更新成功，name={app.name}")
+
+    def delete_app(self, id: uuid.UUID):
+        """删除应用"""
+        app = self.appService.delete_app(id)
+        return success_message(f"应用删除成功，id={app.id}")
 
     def completion(self):
         """聊天接口"""

@@ -6,3 +6,6 @@
 @Time   :   2026/2/20 15:57
 @File   :   __init__.py
 """
+from .app import App
+
+__all__ = ["App"]

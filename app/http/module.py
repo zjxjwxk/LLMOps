@@ -6,10 +6,10 @@
 @Time   :   2026/2/25 00:09
 @File   :   module.py
 """
-from flask_sqlalchemy import SQLAlchemy
 from injector import Module, Binder
 
 from internal.extension.database_extension import db
+from pkg.sqlalchemy import SQLAlchemy
 
 
 class ExtensionModule(Module):

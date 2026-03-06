@@ -10,7 +10,9 @@ import uuid
 from dataclasses import dataclass
 
 from injector import inject
-from openai import OpenAI
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
 from internal.exception import NotFoundException
 from internal.schema.app_schema import CompletionReq
@@ -52,20 +54,19 @@ class AppHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        # 2. 构建OpenAI客户端，并发起请求
+        # 2. 构建PromptTemplate
+        prompt = ChatPromptTemplate.from_template("{query}")
+
+        # 3. 构建LLM
         # （自动从环境变量获取 OPENAI_API_KEY 和 OPENAI_BASE_URL）
-        client = OpenAI()
+        llm = ChatOpenAI(model="kimi-k2-0905-preview")
 
-        # 3. 得到OpenAI响应，并返回给前端
-        completion = client.chat.completions.create(
-            model="kimi-k2-0905-preview",
-            messages=[
-                {"role": "system", "content": "你是 Kimi，由 Moonshot AI 提供的人工智能助手"},
-                {"role": "user", "content": req.query.data},
-            ]
-        )
+        # 4. 构建字符串输出解析器
+        parser = StrOutputParser()
 
-        content = completion.choices[0].message.content
+        # 5. 调用LLM，并解析字符串结果
+        content = parser.invoke(llm.invoke(prompt.invoke({"query": req.query.data})))
+
         return success_json({"content": content})
 
     def ping(self):

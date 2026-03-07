@@ -54,18 +54,16 @@ class AppHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        # 2. 构建PromptTemplate
+        # 2. 构建PromptTemplate, ChatModel, OutputParser组件
         prompt = ChatPromptTemplate.from_template("{query}")
-
-        # 3. 构建LLM
-        # （自动从环境变量获取 OPENAI_API_KEY 和 OPENAI_BASE_URL）
         llm = ChatOpenAI(model="kimi-k2-0905-preview")
-
-        # 4. 构建字符串输出解析器
         parser = StrOutputParser()
 
-        # 5. 调用LLM，并解析字符串结果
-        content = parser.invoke(llm.invoke(prompt.invoke({"query": req.query.data})))
+        # 3. 构建链
+        chain = prompt | llm | parser
+
+        # 4. 调用链
+        content = chain.invoke({"query": req.query.data})
 
         return success_json({"content": content})
 

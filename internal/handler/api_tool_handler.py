@@ -11,11 +11,13 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from flask import request
 from injector import inject
 
 from internal.schema.api_tool_schema import ValidateOpenAPISchemaReq, CreateApiToolReq, GetApiToolProviderResp, \
-    GetApiToolResp
+    GetApiToolResp, GetApiToolProvidersWithPageReq, GetApiToolProvidersWithPageResp
 from internal.service import ApiToolService
+from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_message, success_json
 
 
@@ -54,6 +56,19 @@ class ApiToolHandler:
         resp = GetApiToolProviderResp()
 
         return success_json(resp.dump(api_tool_provider))
+
+    def get_api_tool_providers_with_page(self):
+        """获取自定义API工具提供商列表（分页）"""
+
+        req = GetApiToolProvidersWithPageReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        api_tool_provider, paginator = self.api_tool_service.get_api_tool_providers_with_page(req)
+
+        resp = GetApiToolProvidersWithPageResp(many=True)
+
+        return success_json(PageModel(list=resp.dump(api_tool_provider), paginator=paginator))
 
     def get_api_tool(self, provider_id: UUID, tool_name: str):
         """获取自定义API工具的信息"""

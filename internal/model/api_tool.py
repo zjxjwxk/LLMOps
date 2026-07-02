@@ -36,6 +36,10 @@ class ApiToolProvider(db.Model):
     )
     created_at = Column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP(0)'))
 
+    @property
+    def tools(self) -> list["ApiTool"]:
+        return db.session.query(ApiTool).filter_by(provider_id=self.id).all()
+
 
 class ApiTool(db.Model):
     """API工具模型"""

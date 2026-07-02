@@ -50,6 +50,7 @@ class Router:
         blue_print.add_url_rule("/api-tools/<uuid:provider_id>", methods=["DELETE"],
                                 view_func=self.api_tool_handler.delete_api_tool_provider)
         blue_print.add_url_rule("/api-tools/<uuid:provider_id>", view_func=self.api_tool_handler.get_api_tool_provider)
+        blue_print.add_url_rule("/api-tools", view_func=self.api_tool_handler.get_api_tool_providers_with_page)
         blue_print.add_url_rule("/api-tools/<uuid:provider_id>/tools/<string:tool_name>",
                                 view_func=self.api_tool_handler.get_api_tool)
 

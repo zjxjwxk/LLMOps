@@ -15,7 +15,7 @@ from flask import request
 from injector import inject
 
 from internal.schema.api_tool_schema import ValidateOpenAPISchemaReq, CreateApiToolReq, GetApiToolProviderResp, \
-    GetApiToolResp, GetApiToolProvidersWithPageReq, GetApiToolProvidersWithPageResp
+    GetApiToolResp, GetApiToolProvidersWithPageReq, GetApiToolProvidersWithPageResp, UpdateApiToolProviderReq
 from internal.service import ApiToolService
 from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_message, success_json
@@ -28,8 +28,8 @@ class ApiToolHandler:
 
     api_tool_service: ApiToolService
 
-    def create_api_tool(self):
-        """创建自定义API工具"""
+    def create_api_tool_provider(self):
+        """创建自定义API工具提供商"""
 
         # 提取请求并校验
         req = CreateApiToolReq()
@@ -37,7 +37,7 @@ class ApiToolHandler:
             return validate_error_json(req.errors)
 
         # 调用服务创建API工具
-        self.api_tool_service.create_api_tool(req)
+        self.api_tool_service.create_api_tool_provider(req)
 
         return success_message("创建自定义API插件成功")
 
@@ -48,8 +48,19 @@ class ApiToolHandler:
 
         return success_message("删除自定义API插件成功")
 
+    def update_api_tool_provider(self, provider_id: UUID):
+        """更新自定义API工具提供商"""
+
+        req = UpdateApiToolProviderReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.api_tool_service.update_api_tool_provider(provider_id, req)
+
+        return success_message("更新自定义API插件成功")
+
     def get_api_tool_provider(self, provider_id: UUID):
-        """获取自定义API工具提供商的信息"""
+        """获取自定义API工具提供商"""
 
         api_tool_provider = self.api_tool_service.get_api_tool_provider(provider_id)
 
@@ -58,7 +69,7 @@ class ApiToolHandler:
         return success_json(resp.dump(api_tool_provider))
 
     def get_api_tool_providers_with_page(self):
-        """获取自定义API工具提供商列表（分页）"""
+        """获取自定义API工具提供商分页"""
 
         req = GetApiToolProvidersWithPageReq(request.args)
         if not req.validate():
@@ -71,7 +82,7 @@ class ApiToolHandler:
         return success_json(PageModel(list=resp.dump(api_tool_provider), paginator=paginator))
 
     def get_api_tool(self, provider_id: UUID, tool_name: str):
-        """获取自定义API工具的信息"""
+        """获取自定义API工具"""
 
         api_tool = self.api_tool_service.get_api_tool(provider_id, tool_name)
 

@@ -21,11 +21,12 @@ from internal.model import ApiToolProvider, ApiTool
 from internal.schema.api_tool_schema import CreateApiToolReq, GetApiToolProvidersWithPageReq, UpdateApiToolProviderReq
 from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
+from .base_service import BaseService
 
 
 @inject
 @dataclass
-class ApiToolService:
+class ApiToolService(BaseService):
     """自定义API工具服务"""
 
     db: SQLAlchemy
@@ -61,33 +62,30 @@ class ApiToolService:
         if api_tool_provider:
             raise ValidationException(f"该工具提供商名称{req.name.data}已存在")
 
-        # 开启数据库自动提交
-        with self.db.auto_commit():
-            # 创建自定义API工具提供商
-            api_tool_provider = ApiToolProvider(
-                account_id=account_id,
-                name=req.name.data,
-                icon=req.icon.data,
-                description=openapi_schema.description,
-                openapi_schema=req.openapi_schema.data,
-                headers=req.headers.data,
-            )
-            self.db.session.add(api_tool_provider)
-            self.db.session.flush()
+        # 创建自定义API工具提供商
+        api_tool_provider = self.create(
+            ApiToolProvider,
+            account_id=account_id,
+            name=req.name.data,
+            icon=req.icon.data,
+            description=openapi_schema.description,
+            openapi_schema=req.openapi_schema.data,
+            headers=req.headers.data,
+        )
 
-            # 创建自定义API工具并关联其提供商
-            for path, path_item in openapi_schema.paths.items():
-                for method, method_item in path_item.items():
-                    api_tool = ApiTool(
-                        account_id=account_id,
-                        provider_id=api_tool_provider.id,
-                        name=method_item.get("operationId"),
-                        description=method_item.get("description"),
-                        url=f"{openapi_schema.server}{path}",
-                        method=method,
-                        parameters=method_item.get("parameters", []),
-                    )
-                    self.db.session.add(api_tool)
+        # 创建自定义API工具并关联其提供商
+        for path, path_item in openapi_schema.paths.items():
+            for method, method_item in path_item.items():
+                self.create(
+                    ApiTool,
+                    account_id=account_id,
+                    provider_id=api_tool_provider.id,
+                    name=method_item.get("operationId"),
+                    description=method_item.get("description"),
+                    url=f"{openapi_schema.server}{path}",
+                    method=method,
+                    parameters=method_item.get("parameters", []),
+                )
 
     def delete_api_tool_provider(self, provider_id: UUID):
         """删除自定义API工具提供商"""
@@ -96,7 +94,7 @@ class ApiToolService:
         account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
 
         # 查询该工具提供商
-        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        api_tool_provider = self.get(ApiToolProvider, provider_id)
 
         # 检查是否为空且是否属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
@@ -120,7 +118,7 @@ class ApiToolService:
         account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
 
         # 查询该工具提供者
-        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        api_tool_provider = self.get(ApiToolProvider, provider_id)
 
         # 检查是否为空且是否属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
@@ -147,25 +145,28 @@ class ApiToolService:
                 ApiTool.account_id == account_id,
             ).delete()
 
-            # 更新该工具提供者的信息
-            api_tool_provider.name = req.name.data
-            api_tool_provider.icon = req.icon.data
-            api_tool_provider.openapi_schema = req.openapi_schema.data
-            api_tool_provider.headers = req.headers.data
+        # 更新该工具提供者的信息
+        self.update(
+            api_tool_provider,
+            name=req.name.data,
+            icon=req.icon.data,
+            openapi_schema=req.openapi_schema.data,
+            headers=req.headers.data
+        )
 
-            # 创建更新后的自定义API工具并关联其提供商
-            for path, path_item in openapi_schema.paths.items():
-                for method, method_item in path_item.items():
-                    api_tool = ApiTool(
-                        account_id=account_id,
-                        provider_id=api_tool_provider.id,
-                        name=method_item.get("operationId"),
-                        description=method_item.get("description"),
-                        url=f"{openapi_schema.server}{path}",
-                        method=method,
-                        parameters=method_item.get("parameters", []),
-                    )
-                    self.db.session.add(api_tool)
+        # 创建更新后的自定义API工具并关联其提供商
+        for path, path_item in openapi_schema.paths.items():
+            for method, method_item in path_item.items():
+                self.create(
+                    ApiTool,
+                    account_id=account_id,
+                    provider_id=api_tool_provider.id,
+                    name=method_item.get("operationId"),
+                    description=method_item.get("description"),
+                    url=f"{openapi_schema.server}{path}",
+                    method=method,
+                    parameters=method_item.get("parameters", []),
+                )
 
     def get_api_tool_provider(self, provider_id: UUID):
         """获取自定义API工具提供商"""
@@ -174,7 +175,7 @@ class ApiToolService:
         account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
 
         # 查询该工具的提供商
-        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        api_tool_provider = self.get(ApiToolProvider, provider_id)
 
         # 检查是否为空且是否属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:

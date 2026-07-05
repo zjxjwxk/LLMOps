@@ -15,7 +15,8 @@ from uuid import UUID
 
 from injector import inject
 
-from internal.core.tools.api_tools.entities import OpenAPISchema
+from internal.core.tools.api_tools.entities import OpenAPISchema, ToolEntity
+from internal.core.tools.api_tools.providers import ApiProviderManager
 from internal.exception import ValidationException, NotFoundException
 from internal.model import ApiToolProvider, ApiTool
 from internal.schema.api_tool_schema import CreateApiToolReq, GetApiToolProvidersWithPageReq, UpdateApiToolProviderReq
@@ -30,19 +31,7 @@ class ApiToolService(BaseService):
     """自定义API工具服务"""
 
     db: SQLAlchemy
-
-    @classmethod
-    def parse_openapi_schema(cls, openapi_schema_str: str) -> OpenAPISchema:
-        """解析OpenAPI Schema字符串"""
-
-        try:
-            data = json.loads(openapi_schema_str.strip())
-            if not isinstance(data, dict):
-                raise
-        except Exception:
-            raise ValidationException("OpenAPI Schema校验不通过")
-
-        return OpenAPISchema(**data)
+    api_provider_manager: ApiProviderManager
 
     def create_api_tool_provider(self, req: CreateApiToolReq) -> None:
         """创建自定义API工具提供商"""
@@ -222,3 +211,43 @@ class ApiToolService(BaseService):
             raise NotFoundException("该自定义API工具不存在")
 
         return api_tool
+
+    def api_tool_invoke(self):
+        provider_id = "a712e526-f4dd-490f-be3e-256d581c201c"
+        tool_name = "GetDistrictCode"
+
+        api_tool = self.db.session.query(ApiTool).filter(
+            ApiTool.provider_id == provider_id,
+            ApiTool.name == tool_name
+        ).one_or_none()
+
+        api_tool_provider = api_tool.provider
+
+        tool = self.api_provider_manager.get_tool(ToolEntity(
+            id=provider_id,
+            name=tool_name,
+            url=api_tool.url,
+            method=api_tool.method,
+            description=api_tool.description,
+            headers=api_tool_provider.headers,
+            parameters=api_tool.parameters,
+        ))
+
+        return tool.invoke({
+            "key": "cbfa3acb9e0e0453905a6ce664ed4448",
+            "keywords": "杭州",
+            "subdistrict": 0
+        })
+
+    @classmethod
+    def parse_openapi_schema(cls, openapi_schema_str: str) -> OpenAPISchema:
+        """解析OpenAPI Schema字符串"""
+
+        try:
+            data = json.loads(openapi_schema_str.strip())
+            if not isinstance(data, dict):
+                raise
+        except Exception:
+            raise ValidationException("OpenAPI Schema校验不通过")
+
+        return OpenAPISchema(**data)

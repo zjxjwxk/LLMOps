@@ -23,7 +23,7 @@ from langchain_core.tracers import Run
 from langchain_openai import ChatOpenAI
 
 from internal.schema.app_schema import CompletionReq
-from internal.service import AppService
+from internal.service import AppService, ApiToolService
 from internal.service.vector_database_service import VectorDatabaseService
 from pkg.response import validate_error_json, success_json, success_message
 
@@ -35,6 +35,7 @@ class AppHandler:
 
     appService: AppService
     vector_database_service: VectorDatabaseService
+    api_tool_service: ApiToolService
 
     def create_app(self):
         """创建应用"""
@@ -99,7 +100,7 @@ class AppHandler:
         return success_json({"content": content})
 
     def ping(self):
-        return success_json("pong")
+        return self.api_tool_service.api_tool_invoke()
 
     @classmethod
     def _load_memory_variables(cls, input: Dict[str, Any], config: RunnableConfig) -> Dict[str, Any]:

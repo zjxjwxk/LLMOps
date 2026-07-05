@@ -6,6 +6,7 @@
 @Time   :   2026/6/28 16:06
 @File   :   __init__.py
 """
-from .openapi_schema import OpenAPISchema, ParameterIn, ParameterType
+from .openapi_schema import OpenAPISchema, ParameterIn, ParameterType, ParameterTypeMap
+from .tool_entity import ToolEntity
 
-__all__ = ["OpenAPISchema", "ParameterIn", "ParameterType"]
+__all__ = ["OpenAPISchema", "ParameterIn", "ParameterType", "ToolEntity", "ParameterTypeMap"]

@@ -32,6 +32,14 @@ class ParameterType(str, Enum):
     BOOL = "bool"
 
 
+ParameterTypeMap = {
+    ParameterType.STR: str,
+    ParameterType.INT: int,
+    ParameterType.FLOAT: float,
+    ParameterType.BOOL: bool,
+}
+
+
 class OpenAPISchema(BaseModel):
     """OpenAPI Schema实体类"""
 

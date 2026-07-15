@@ -2,14 +2,14 @@
   label: Google
   description: 谷歌服务提供商，涵盖了谷歌搜索等工具
   icon: icon.svg
-  background: "#E5E7EB"
+  background: "#FFFFFF"
   category: search
   created_at: 1782392635
 - name: time
   label: 时间
   description: 时间获取工具，用于获取当前时间
   icon: icon.svg
-  background: "#E5E7EB"
+  background: "#FFFFFF"
   category: tool
   created_at: 1782392635
 - name: duckduckgo
@@ -23,8 +23,8 @@
   label: 高德工具包
   description: 内置了高德天气预报和IP查询工具
   icon: icon.png
-  background: "#E5E7EB"
-  category: tool
+  background: "#FFFFFF"
+  category: weather
   created_at: 1782392635
 - name: wikipedia
   label: 维基百科

@@ -6,6 +6,7 @@
 @Time   :   2026/2/21 18:18
 @File   :   http.py
 """
+import logging
 
 from flask import Flask
 from flask_cors import CORS
@@ -13,6 +14,7 @@ from flask_migrate import Migrate
 
 from config import Config
 from internal.exception import CustomException
+from internal.extension import logging_extension
 from internal.router import Router
 from pkg.response import json, Response, HttpCode
 from pkg.sqlalchemy import SQLAlchemy
@@ -42,6 +44,7 @@ class Http(Flask):
         # 4. 初始化Flask扩展
         db.init_app(self)
         migrate.init_app(self, db, directory="internal/migration")
+        logging_extension.init_app(self)
 
         # 5. 解决前后端跨域问题
         CORS(self, resources={
@@ -57,7 +60,10 @@ class Http(Flask):
         router.register_router(self)
 
     def _error_handler(self, error: Exception):
-        # 1. 自定义异常，返回对应异常信息作为响应
+        # 日志记录异常信息
+        logging.error("An error occurred: %s", error, exc_info=True)
+
+        # 自定义异常，返回对应异常信息作为响应
         if isinstance(error, CustomException):
             return json(Response(
                 code=error.code,
@@ -65,7 +71,7 @@ class Http(Flask):
                 data=error.data if error.data is not None else {},
             ))
 
-        # 2. 非自定义异常
+        # 非自定义异常
         if self.debug:
             # Debug模式下，直接返回异常
             raise error

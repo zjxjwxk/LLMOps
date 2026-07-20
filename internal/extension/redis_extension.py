@@ -33,4 +33,5 @@ def init_app(app: Flask):
         "decode_responses": False
     }, connection_class=connection_class)
 
+    # 将Redis挂载到Flask扩展中
     app.extensions["redis"] = redis_client

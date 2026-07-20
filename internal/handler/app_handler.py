@@ -6,6 +6,7 @@
 @Time   :   2026/2/21 17:31
 @File   :   app_handler.py
 """
+import uuid
 from dataclasses import dataclass
 from operator import itemgetter
 from typing import Dict, Any
@@ -25,6 +26,7 @@ from langchain_openai import ChatOpenAI
 from internal.schema.app_schema import CompletionReq
 from internal.service import AppService, ApiToolService
 from internal.service.vector_database_service import VectorDatabaseService
+from internal.task.demo_task import demo_task
 from pkg.response import validate_error_json, success_json, success_message
 
 
@@ -100,6 +102,7 @@ class AppHandler:
         return success_json({"content": content})
 
     def ping(self):
+        demo_task.delay(uuid.uuid4())
         return self.api_tool_service.api_tool_invoke()
 
     @classmethod

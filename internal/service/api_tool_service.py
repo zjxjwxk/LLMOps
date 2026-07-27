@@ -14,6 +14,7 @@ from typing import Any
 from uuid import UUID
 
 from injector import inject
+from sqlalchemy import desc
 
 from internal.core.tools.api_tools.entities import OpenAPISchema, ToolEntity
 from internal.core.tools.api_tools.providers import ApiProviderManager
@@ -188,7 +189,6 @@ class ApiToolService(BaseService):
             filters.append(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
 
         # 分页查询数据
-        from sqlalchemy import desc
         api_tool_providers = paginator.paginate(
             self.db.session.query(ApiToolProvider).filter(*filters).order_by(desc("created_at"))
         )

@@ -26,6 +26,30 @@ class App(db.Model):
     icon = Column(String(255), nullable=False, server_default=text("''::character varying"))
     description = Column(Text, nullable=False, server_default=text("''::text"))
     status = Column(String(255), nullable=False, server_default=text("''::character varying"))
-    updated_at = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP(0)"),
-                        server_onupdate=text("CURRENT_TIMESTAMP(0))"))
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        server_onupdate=text("CURRENT_TIMESTAMP(0))")
+    )
+    created_at = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP(0)"))
+
+
+class AppDataset(db.Model):
+    """应用知识库关联模型"""
+
+    __tablename__ = "app_dataset"
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="pk_app_dataset_id"),
+    )
+
+    id = Column(UUID, nullable=False, server_default=text("uuid_generate_v4()"))
+    app_id = Column(UUID, nullable=False)
+    dataset_id = Column(UUID, nullable=False)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        server_onupdate=text("CURRENT_TIMESTAMP(0))")
+    )
     created_at = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP(0)"))

@@ -7,7 +7,10 @@
 @File   :   __init__.py
 """
 from .api_tool import ApiToolProvider, ApiTool
-from .app import App
+from .app import App, AppDataset
+from .dataset import Dataset, Document, Segment, KeywordTable, DatasetQuery, ProcessRule
 from .upload_file import UploadFile
 
-__all__ = ["App", "ApiToolProvider", "ApiTool", "UploadFile"]
+__all__ = ["App", "AppDataset",
+           "ApiToolProvider", "ApiTool", "UploadFile",
+           "Dataset", "Document", "Segment", "KeywordTable", "DatasetQuery", "ProcessRule"]

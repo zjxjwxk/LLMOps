@@ -11,20 +11,26 @@
 import os
 
 import weaviate
+from injector import inject
 from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStoreRetriever
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_weaviate import WeaviateVectorStore
 from weaviate.client import WeaviateClient
 
+from .embeddings_service import EmbeddingsService
 
+
+@inject
 class VectorDatabaseService:
     """向量数据库服务"""
 
     client: WeaviateClient
     vector_store: WeaviateVectorStore
+    embeddings_service: EmbeddingsService
 
-    def __init__(self):
+    def __init__(self, embeddings_service: EmbeddingsService):
+        self.embeddings_service = embeddings_service
+
         # 创建并连接Weaviate向量数据库
         self.client = weaviate.connect_to_local(
             host=os.getenv("WEAVIATE_HOST"),
@@ -36,7 +42,7 @@ class VectorDatabaseService:
             self.client,
             index_name="Dataset",
             text_key="text",
-            embedding=GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+            embedding=self.embeddings_service.embeddings
         )
 
     def get_retriever(self) -> VectorStoreRetriever:

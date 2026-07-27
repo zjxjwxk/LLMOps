@@ -70,6 +70,7 @@ class Router:
                                 view_func=self.dataset_handler.update_dataset)
         blue_print.add_url_rule("/datasets", view_func=self.dataset_handler.get_dataset_with_page)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>", view_func=self.dataset_handler.get_dataset)
+        blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
 
         # 注册蓝图
         app.register_blueprint(blue_print)

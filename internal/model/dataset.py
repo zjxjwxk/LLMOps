@@ -197,7 +197,7 @@ class ProcessRule(db.Model):
     id = Column(UUID, nullable=False, server_default=text("uuid_generate_v4()"))
     account_id = Column(UUID, nullable=False)
     dataset_id = Column(UUID, nullable=False)
-    mode = Column(String(255), nullable=False, server_default=text("'auto'::character varying"))
+    mode = Column(String(255), nullable=False, server_default=text("'automatic'::character varying"))
     rule = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     updated_at = Column(
         DateTime,

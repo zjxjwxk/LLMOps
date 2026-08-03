@@ -8,6 +8,7 @@
 @Time   :   2026/7/27 21:44
 @File   :   embeddings_service.py
 """
+import os
 from dataclasses import dataclass
 
 import tiktoken
@@ -15,7 +16,7 @@ from injector import inject
 from langchain_classic.embeddings import CacheBackedEmbeddings
 from langchain_community.storage import RedisStore
 from langchain_core.embeddings import Embeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from redis import Redis
 
 
@@ -33,15 +34,16 @@ class EmbeddingsService:
 
         self._store = RedisStore(client=redis)
         # 远程Embedding模型
-        self._embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+        # self._embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
         # 本地Embedding模型
-        # self._embeddings = HuggingFaceEmbeddings(
-        #     model_name="Alibaba-NLP/gte-multilingual-base",
-        #     cache_folder=os.path.join(os.getcwd(), "internal", "core", "embeddings"),
-        #     model_kwargs={
-        #         "trust_remote_code": True,
-        #     },
-        # )
+        self._embeddings = HuggingFaceEmbeddings(
+            model_name="Alibaba-NLP/gte-multilingual-base",
+            cache_folder=os.path.join(os.getcwd(), "internal", "core", "embeddings"),
+            model_kwargs={
+                "trust_remote_code": True,
+                "local_files_only": True,
+            },
+        )
         self._cache_backed_embeddings = CacheBackedEmbeddings.from_bytes_store(
             self._embeddings,
             self._store,

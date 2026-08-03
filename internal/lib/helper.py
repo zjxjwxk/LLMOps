@@ -9,6 +9,7 @@
 @File   :   helper.py
 """
 import importlib
+from hashlib import sha3_256
 from typing import Any
 
 
@@ -27,3 +28,13 @@ def add_attribute(attr_name: str, attr_value: Any):
         return func
 
     return decorator
+
+
+def generate_text_hash(text: str) -> str:
+    """生成文本哈希值"""
+
+    # 避免空字符串导致计算错误
+    text = str(text) + "None"
+
+    # 使用SHA3_256计算文本哈希值
+    return sha3_256(text.encode()).hexdigest()

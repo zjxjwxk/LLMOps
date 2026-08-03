@@ -8,9 +8,8 @@
 """
 import dotenv
 from flask_migrate import Migrate
-from injector import Injector
 
-from app.http.module import ExtensionModule
+from app.http.module import injector
 from config import Config
 from internal.router import Router
 from internal.server import Http
@@ -21,9 +20,6 @@ dotenv.load_dotenv()
 
 # 应用配置
 config = Config()
-
-# 依赖注入
-injector = Injector([ExtensionModule])
 
 app = Http(
     __name__,

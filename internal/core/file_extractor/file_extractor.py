@@ -22,7 +22,7 @@ from langchain_community.document_loaders import UnstructuredExcelLoader, Unstru
 from langchain_core.documents import Document
 
 from internal.model import UploadFile
-from internal.service import OciObjectStorageService
+from internal.service.oci_object_storage_service import OciObjectStorageService
 
 
 @inject

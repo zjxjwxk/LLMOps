@@ -7,3 +7,6 @@ venv
 internal/migration
 demo
 storage
+
+# Embeddings models
+internal/core/embeddings/models--*

@@ -13,11 +13,25 @@ from .builtin_tool_service import BuiltinToolService
 from .dataset_service import DatasetService
 from .document_service import DocumentService
 from .embeddings_service import EmbeddingsService
+from .indexing_service import IndexingService
 from .jieba_service import JiebaService
+from .keyword_table_service import KeywordTableService
 from .oci_object_storage_service import OciObjectStorageService
+from .process_rule_service import ProcessRuleService
 from .upload_file_service import UploadFileService
 from .vector_database_service import VectorDatabaseService
 
-__all__ = ["BaseService", "AppService", "VectorDatabaseService", "BuiltinToolService", "ApiToolService",
-           "OciObjectStorageService", "UploadFileService",
-           "DatasetService", "EmbeddingsService", "JiebaService", "DocumentService"]
+__all__ = ["BaseService",
+           "AppService",
+           "BuiltinToolService",
+           "ApiToolService",
+           "OciObjectStorageService",
+           "UploadFileService",
+           "DatasetService",
+           "EmbeddingsService",
+           "VectorDatabaseService",
+           "JiebaService",
+           "DocumentService",
+           "IndexingService",
+           "ProcessRuleService",
+           "KeywordTableService"]

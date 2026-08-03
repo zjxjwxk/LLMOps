@@ -22,6 +22,7 @@ from internal.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
 from internal.exception import ForbiddenException, FailException
 from internal.model import Document, Dataset, UploadFile, ProcessRule
 from internal.service import BaseService
+from internal.task.document_task import build_documents
 from pkg.sqlalchemy import SQLAlchemy
 
 
@@ -93,6 +94,7 @@ class DocumentService(BaseService):
             documents.append(document)
 
         # TODO: 调用异步任务，存储至向量数据库
+        build_documents.delay([document.id for document in documents])
 
         return documents, batch
 

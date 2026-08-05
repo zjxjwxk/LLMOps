@@ -11,10 +11,12 @@
 import logging
 import re
 import uuid
+from concurrent.futures.thread import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from flask import Flask, current_app
 from injector import inject
 from langchain_core.documents import Document as LangChainDocument
 from sqlalchemy import func
@@ -214,23 +216,38 @@ class IndexingService(BaseService):
             langchain_segment.metadata["document_enabled"] = True
             langchain_segment.metadata["segment_enabled"] = True
 
-        # 批量存储片段至向量数据库，每批最多存储10条
-        for i in range(0, len(langchain_segments), 10):
-            # 提取片段列表和node_id列表
-            chunks = langchain_segments[i:i + 10]
-            ids = [chunk.metadata["node_id"] for chunk in chunks]
+        # 批量更新片段状态、完成时间、启用状态
+        def thread_func(flask_app: Flask, chunks: list[LangChainDocument], ids: list[UUID]) -> None:
+            """线程函数，执行向量数据库存储和DB存储"""
 
-            # 批量存储至向量数据库
-            self.vector_database_service.vector_store.add_documents(chunks, ids=ids)
+            with flask_app.app_context():
+                self.vector_database_service.vector_store.add_documents(chunks, ids=ids)
 
-            # 批量更新片段状态、完成时间、启用状态
-            self.db.session.query(Segment).filter(
-                Segment.node_id.in_(ids)
-            ).update({
-                "status": SegmentStatus.COMPLETED,
-                "completed_at": datetime.now(),
-                "enabled": True
-            })
+                with self.db.auto_commit():
+                    self.db.session.query(Segment).filter(
+                        Segment.node_id.in_(ids)
+                    ).update({
+                        "status": SegmentStatus.COMPLETED,
+                        "completed_at": datetime.now(),
+                        "enabled": True
+                    })
+
+        # 创建线程池（线程数为5）
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+
+            # 批量存储片段至向量数据库，每批最多存储10条
+            for i in range(0, len(langchain_segments), 10):
+                # 提取片段列表和node_id列表
+                chunks = langchain_segments[i:i + 10]
+                ids = [chunk.metadata["node_id"] for chunk in chunks]
+
+                # 提交线程任务
+                futures.append(executor.submit(thread_func, current_app._get_current_object(), chunks, ids))
+
+            # 等待所有线程执行结束
+            for future in futures:
+                future.result()
 
         # 更新文档状态、完成时间、启用状态
         self.update(

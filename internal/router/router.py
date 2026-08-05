@@ -75,6 +75,7 @@ class Router:
         blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents", methods=["POST"],
                                 view_func=self.document_handler.create_documents)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/hit", methods=["POST"], view_func=self.dataset_handler.hit)
 
         # 注册蓝图
         app.register_blueprint(blue_print)

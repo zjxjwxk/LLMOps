@@ -18,7 +18,7 @@ from internal.core.file_extractor import FileExtractor
 from internal.model import UploadFile
 from internal.schema.dataset_schema import CreateDatasetReq, GetDatasetResp, UpdateDatasetReq, GetDatasetsWithPageReq, \
     GetDatasetsWithPageResp
-from internal.service import DatasetService, EmbeddingsService, JiebaService
+from internal.service import DatasetService, EmbeddingsService, JiebaService, VectorDatabaseService
 from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_message, success_json
 from pkg.sqlalchemy import SQLAlchemy
@@ -33,13 +33,14 @@ class DatasetHandler:
     embeddings_service: EmbeddingsService
     jieba_service: JiebaService
     file_extractor: FileExtractor
+    vector_database_service: VectorDatabaseService
     db: SQLAlchemy
 
     def embeddings_query(self):
         upload_file = self.db.session.query(UploadFile).get("3eac1be9-c24e-4a85-8c30-4d30cf9f64e0")
         content = self.file_extractor.load(upload_file, True)
         return success_json({"content": content})
-        
+
         # query = request.args.get("query")
 
         # vectors = self.embeddings_service.embeddings.embed_query(query)
@@ -47,6 +48,33 @@ class DatasetHandler:
 
         # keywords = self.jieba_service.extract_keywords(query)
         # return success_json({"keywords": keywords})
+
+    def hit(self, dataset_id: UUID):
+        query = "LLMOps关于Flask-SQLAlchemy的相关提示词有哪些？"
+        from weaviate.classes.query import Filter
+        retriever = self.vector_database_service.vector_store.as_retriever(
+            search_type="mmr",
+            search_kwargs={
+                "k": 10,
+                "filters": Filter.all_of([
+                    Filter.by_property("document_enabled").equal(True),
+                    Filter.by_property("segment_enabled").equal(True),
+                    Filter.any_of([
+                        Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b08"),
+                        Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b09"),
+                    ])
+                ])
+            }
+        )
+
+        documents = retriever.invoke(query)
+
+        return success_json({"documents": [
+            {
+                "page_content": document.page_content,
+                "metadata": document.metadata,
+            } for document in documents
+        ]})
 
     def create_dataset(self):
         """创建知识库"""

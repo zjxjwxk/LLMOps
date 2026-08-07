@@ -9,6 +9,7 @@
 @File   :   helper.py
 """
 import importlib
+from datetime import datetime
 from hashlib import sha3_256
 from typing import Any
 
@@ -38,3 +39,11 @@ def generate_text_hash(text: str) -> str:
 
     # 使用SHA3_256计算文本哈希值
     return sha3_256(text.encode()).hexdigest()
+
+
+def datetime_to_timestamp(dt: datetime) -> int:
+    """datetime转换为时间戳"""
+
+    if dt is None:
+        return 0
+    return int(dt.timestamp())

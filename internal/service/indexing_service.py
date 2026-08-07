@@ -69,7 +69,6 @@ class IndexingService(BaseService):
 
                 self._indexing(document, langchain_segments)
 
-                # TODO: 更新文档状态，并存储向量数据库
                 self._completed(document, langchain_segments)
 
             except Exception as e:

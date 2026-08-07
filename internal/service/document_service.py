@@ -15,12 +15,13 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from injector import inject
-from sqlalchemy import desc
+from sqlalchemy import desc, asc, func
 
-from internal.entity.dataset_entity import ProcessType
+from internal.entity.dataset_entity import ProcessType, SegmentStatus
 from internal.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
-from internal.exception import ForbiddenException, FailException
-from internal.model import Document, Dataset, UploadFile, ProcessRule
+from internal.exception import ForbiddenException, FailException, NotFoundException
+from internal.lib.helper import datetime_to_timestamp
+from internal.model import Document, Dataset, UploadFile, ProcessRule, Segment
 from internal.service import BaseService
 from internal.task.document_task import build_documents
 from pkg.sqlalchemy import SQLAlchemy
@@ -93,10 +94,65 @@ class DocumentService(BaseService):
             )
             documents.append(document)
 
-        # TODO: 调用异步任务，存储至向量数据库
         build_documents.delay([document.id for document in documents])
 
         return documents, batch
+
+    def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
+        """获取文档列表状态（根据知识库和批次）"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 校验知识库权限
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            raise ForbiddenException("该知识库不存在或当前用户无权访问")
+
+        # 查询该批次文档列表
+        documents = self.db.session.query(Document).filter(
+            Document.dataset_id == dataset_id,
+            Document.batch == batch,
+        ).order_by(asc("position")).all()
+
+        if documents is None or len(documents) == 0:
+            raise NotFoundException("该处理批次未找到文档，请检查并重试")
+
+        # 查询列表中所有文档的状态
+        documents_status = []
+        for document in documents:
+            # 查询文档总片段数和已完成构建片段数
+            segment_count = self.db.session.query(func.count(Segment.id)).filter(
+                Segment.document_id == document.id,
+            ).scalar()
+
+            completed_segment_count = self.db.session.query(func.count(Segment.id)).filter(
+                Segment.document_id == document.id,
+                Segment.status == SegmentStatus.COMPLETED,
+            ).scalar()
+
+            upload_file = document.upload_file
+            documents_status.append({
+                "id": document.id,
+                "name": document.name,
+                "size": upload_file.size,
+                "extension": upload_file.extension,
+                "mime_type": upload_file.mime_type,
+                "position": document.position,
+                "segment_count": segment_count,
+                "completed_segment_count": completed_segment_count,
+                "error": document.error,
+                "status": document.status,
+                "processing_started_at": datetime_to_timestamp(document.processing_started_at),
+                "parsing_completed_at": datetime_to_timestamp(document.parsing_completed_at),
+                "splitting_completed_at": datetime_to_timestamp(document.splitting_completed_at),
+                "indexing_completed_at": datetime_to_timestamp(document.indexing_completed_at),
+                "completed_at": datetime_to_timestamp(document.completed_at),
+                "stopped_at": datetime_to_timestamp(document.stopped_at),
+                "created_at": datetime_to_timestamp(document.created_at)
+            })
+
+        return documents_status
 
     def get_latest_document_position(self, dataset_id: UUID) -> int:
         """获取知识库的最新文档位置"""

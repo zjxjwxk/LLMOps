@@ -16,6 +16,7 @@ from wtforms.fields.simple import StringField
 from wtforms.validators import DataRequired, AnyOf, ValidationError
 
 from internal.entity.dataset_entity import ProcessType, DEFAULT_PROCESS_RULE
+from internal.lib.helper import datetime_to_timestamp
 from internal.model import Document
 from internal.schema import ListField
 from internal.schema.schema import DictField
@@ -154,4 +155,40 @@ class CreateDocumentsResp(Schema):
                 "created_at": int(document.created_at.timestamp())
             } for document in data[0]],
             "batch": data[1],
+        }
+
+
+class GetDocumentResp(Schema):
+    """获取文档详情响应"""
+
+    id = fields.UUID(dump_default="")
+    dataset_id = fields.UUID(dump_default="")
+    name = fields.String(dump_default="")
+    segment_count = fields.Integer(dump_default=0)
+    character_count = fields.Integer(dump_default=0)
+    hit_count = fields.Integer(dump_default=0)
+    position = fields.Integer(dump_default=0)
+    enabled = fields.Bool(dump_default=False)
+    disabled_at = fields.Integer(dump_default=0)
+    status = fields.String(dump_default="")
+    error = fields.String(dump_default="")
+    updated_at = fields.Integer(dump_default=0)
+    created_at = fields.Integer(dump_default=0)
+
+    @pre_dump
+    def process_data(self, data: Document, **kwargs):
+        return {
+            "id": data.id,
+            "dataset_id": data.dataset_id,
+            "name": data.name,
+            "segment_count": data.segment_count,
+            "character_count": data.character_count,
+            "hit_count": data.hit_count,
+            "position": data.position,
+            "enabled": data.enabled,
+            "disabled_at": datetime_to_timestamp(data.disabled_at),
+            "status": data.status,
+            "error": data.error,
+            "updated_at": datetime_to_timestamp(data.updated_at),
+            "created_at": datetime_to_timestamp(data.created_at),
         }

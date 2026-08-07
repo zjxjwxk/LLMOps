@@ -98,6 +98,23 @@ class DocumentService(BaseService):
 
         return documents, batch
 
+    def get_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+        """获取文档详情"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 查询文档记录
+        document = self.get(Document, document_id)
+
+        if document is None:
+            raise NotFoundException("该文档不存在，请检查后重试")
+
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            raise ForbiddenException("当前用户无权限查看该文档，请检查后重试")
+
+        return document
+
     def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
         """获取文档列表状态（根据知识库和批次）"""
 

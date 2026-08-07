@@ -13,7 +13,7 @@ from uuid import UUID
 
 from injector import inject
 
-from internal.schema.document_schema import CreateDocumentsReq, CreateDocumentsResp
+from internal.schema.document_schema import CreateDocumentsReq, CreateDocumentsResp, GetDocumentResp
 from internal.service import DocumentService
 from pkg.response import validate_error_json, success_json
 
@@ -37,6 +37,25 @@ class DocumentHandler:
 
         resp = CreateDocumentsResp()
         return success_json(resp.dump((documents, batch)))
+
+    def update_document_name(self, dataset_id: UUID, document_id: UUID):
+        """更新文档名称"""
+
+        pass
+
+    def get_document(self, dataset_id: UUID, document_id: UUID):
+        """获取文档详情"""
+
+        # 调用服务查询文档详情
+        document = self.document_service.get_document(dataset_id, document_id)
+
+        resp = GetDocumentResp()
+        return success_json(resp.dump(document))
+
+    def get_documents_with_page(self, dataset_id: UUID):
+        """获取文档列表分页"""
+
+        pass
 
     def get_documents_status(self, dataset_id: UUID, batch: str):
         """获取文档列表状态（根据知识库和批次）"""

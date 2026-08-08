@@ -52,12 +52,12 @@ class Router:
                                 view_func=self.api_tool_handler.validate_openapi_schema)
         blue_print.add_url_rule("/api-tools", methods=["POST"],
                                 view_func=self.api_tool_handler.create_api_tool_provider)
-        blue_print.add_url_rule("/api-tools/<uuid:provider_id>/delete", methods=["POST"],
-                                view_func=self.api_tool_handler.delete_api_tool_provider)
-        blue_print.add_url_rule("/api-tools/<uuid:provider_id>", methods=["POST"],
-                                view_func=self.api_tool_handler.update_api_tool_provider)
         blue_print.add_url_rule("/api-tools/<uuid:provider_id>", view_func=self.api_tool_handler.get_api_tool_provider)
         blue_print.add_url_rule("/api-tools", view_func=self.api_tool_handler.get_api_tool_providers_with_page)
+        blue_print.add_url_rule("/api-tools/<uuid:provider_id>", methods=["POST"],
+                                view_func=self.api_tool_handler.update_api_tool_provider)
+        blue_print.add_url_rule("/api-tools/<uuid:provider_id>/delete", methods=["POST"],
+                                view_func=self.api_tool_handler.delete_api_tool_provider)
         blue_print.add_url_rule("/api-tools/<uuid:provider_id>/tools/<string:tool_name>",
                                 view_func=self.api_tool_handler.get_api_tool)
 
@@ -68,21 +68,22 @@ class Router:
 
         # 知识库模块
         blue_print.add_url_rule("/datasets", methods=["POST"], view_func=self.dataset_handler.create_dataset)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>", view_func=self.dataset_handler.get_dataset)
+        blue_print.add_url_rule("/datasets", view_func=self.dataset_handler.get_dataset_with_page)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>", methods=["POST"],
                                 view_func=self.dataset_handler.update_dataset)
-        blue_print.add_url_rule("/datasets", view_func=self.dataset_handler.get_dataset_with_page)
-        blue_print.add_url_rule("/datasets/<uuid:dataset_id>", view_func=self.dataset_handler.get_dataset)
-        blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
+
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents", methods=["POST"],
                                 view_func=self.document_handler.create_documents)
-        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/name", methods=["POST"],
-                                view_func=self.document_handler.update_document_name)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>",
                                 view_func=self.document_handler.get_document)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents",
                                 view_func=self.document_handler.get_documents_with_page)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/batch/<string:batch>",
                                 view_func=self.document_handler.get_documents_status)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/name", methods=["POST"],
+                                view_func=self.document_handler.update_document_name)
+        blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/hit", methods=["POST"], view_func=self.dataset_handler.hit)
 
         # 注册蓝图

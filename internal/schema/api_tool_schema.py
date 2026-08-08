@@ -53,32 +53,6 @@ class CreateApiToolReq(FlaskForm):
                 raise ValidationError("headers列表中的字典必须仅包含key/value两个属性")
 
 
-class UpdateApiToolProviderReq(FlaskForm):
-    """更新自定义API工具提供商的请求"""
-
-    name = StringField("name", validators=[
-        DataRequired(message="提供商名称不能为空"),
-        Length(min=1, max=30, message="提供商名称长度必须在1-30之间")
-    ])
-    icon = StringField("icon", validators=[
-        DataRequired(message="提供商图标不能为空"),
-        URL(message="提供商图标格式必须为URL链接")
-    ])
-    openapi_schema = StringField("openapi_schema", validators=[
-        DataRequired(message="openapi_schema字符串不能为空")
-    ])
-    headers = ListField("headers", default=[])
-
-    @classmethod
-    def validate_headers(cls, form, field):
-        """校验headers"""
-        for header in field.data:
-            if not isinstance(header, dict):
-                raise ValidationError("headers列表中的元素类型必须为字典")
-            if set(header.keys()) != {"key", "value"}:
-                raise ValidationError("headers列表中的字典必须仅包含key/value两个属性")
-
-
 class GetApiToolProviderResp(Schema):
     """获取自定义API提供商信息的响应"""
 
@@ -134,6 +108,32 @@ class GetApiToolProvidersWithPageResp(Schema):
             } for tool in tools],
             "created_at": int(data.created_at.timestamp())
         }
+
+
+class UpdateApiToolProviderReq(FlaskForm):
+    """更新自定义API工具提供商的请求"""
+
+    name = StringField("name", validators=[
+        DataRequired(message="提供商名称不能为空"),
+        Length(min=1, max=30, message="提供商名称长度必须在1-30之间")
+    ])
+    icon = StringField("icon", validators=[
+        DataRequired(message="提供商图标不能为空"),
+        URL(message="提供商图标格式必须为URL链接")
+    ])
+    openapi_schema = StringField("openapi_schema", validators=[
+        DataRequired(message="openapi_schema字符串不能为空")
+    ])
+    headers = ListField("headers", default=[])
+
+    @classmethod
+    def validate_headers(cls, form, field):
+        """校验headers"""
+        for header in field.data:
+            if not isinstance(header, dict):
+                raise ValidationError("headers列表中的元素类型必须为字典")
+            if set(header.keys()) != {"key", "value"}:
+                raise ValidationError("headers列表中的字典必须仅包含key/value两个属性")
 
 
 class GetApiToolResp(Schema):

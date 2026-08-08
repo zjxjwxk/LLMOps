@@ -34,23 +34,6 @@ class CreateDatasetReq(FlaskForm):
     ])
 
 
-class UpdateDatasetReq(FlaskForm):
-    """更新知识库请求"""
-
-    name = StringField("name", validators=[
-        DataRequired("知识库名称不能为空"),
-        Length(max=100, message="知识库名称长度不能超过100字符")
-    ])
-    icon = StringField("icon", validators=[
-        DataRequired("知识库图标不能为空"),
-        URL(message="知识库图标必须为URL格式地址"),
-    ])
-    description = StringField("description", default="", validators=[
-        Optional(),
-        Length(max=2000, message="知识库描述长度不能超过2000字符")
-    ])
-
-
 class GetDatasetResp(Schema):
     """获取知识库响应"""
 
@@ -115,3 +98,20 @@ class GetDatasetsWithPageResp(Schema):
             "updated_at": int(data.updated_at.timestamp()),
             "created_at": int(data.created_at.timestamp()),
         }
+
+
+class UpdateDatasetReq(FlaskForm):
+    """更新知识库请求"""
+
+    name = StringField("name", validators=[
+        DataRequired("知识库名称不能为空"),
+        Length(max=100, message="知识库名称长度不能超过100字符")
+    ])
+    icon = StringField("icon", validators=[
+        DataRequired("知识库图标不能为空"),
+        URL(message="知识库图标必须为URL格式地址"),
+    ])
+    description = StringField("description", default="", validators=[
+        Optional(),
+        Length(max=2000, message="知识库描述长度不能超过2000字符")
+    ])

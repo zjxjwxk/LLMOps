@@ -36,6 +36,55 @@ class DatasetHandler:
     vector_database_service: VectorDatabaseService
     db: SQLAlchemy
 
+    def create_dataset(self):
+        """创建知识库"""
+
+        req = CreateDatasetReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务创建知识库
+        self.dataset_service.create_dataset(req)
+
+        return success_message("创建知识库成功")
+
+    def get_dataset(self, dataset_id: UUID):
+        """获取知识库"""
+
+        # 调用服务获取知识库
+        dataset = self.dataset_service.get_dataset(dataset_id)
+
+        resp = GetDatasetResp()
+
+        return success_json(resp.dump(dataset))
+
+    def get_dataset_with_page(self):
+        """获取知识库分页"""
+
+        req = GetDatasetsWithPageReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务获取知识库分页
+        datasets, paginator = self.dataset_service.get_datasets_with_page(req)
+
+        resp = GetDatasetsWithPageResp(many=True)
+
+        # 构建分页响应
+        return success_json(PageModel(list=resp.dump(datasets), paginator=paginator))
+
+    def update_dataset(self, dataset_id: UUID):
+        """更新知识库"""
+
+        req = UpdateDatasetReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务更新知识库
+        self.dataset_service.update_dataset(dataset_id, req)
+
+        return success_message("更新知识库成功")
+
     def embeddings_query(self):
         upload_file = self.db.session.query(UploadFile).get("3eac1be9-c24e-4a85-8c30-4d30cf9f64e0")
         content = self.file_extractor.load(upload_file, True)
@@ -75,52 +124,3 @@ class DatasetHandler:
                 "metadata": document.metadata,
             } for document in documents
         ]})
-
-    def create_dataset(self):
-        """创建知识库"""
-
-        req = CreateDatasetReq()
-        if not req.validate():
-            return validate_error_json(req.errors)
-
-        # 调用服务创建知识库
-        self.dataset_service.create_dataset(req)
-
-        return success_message("创建知识库成功")
-
-    def get_dataset(self, dataset_id: UUID):
-        """获取知识库"""
-
-        # 调用服务获取知识库
-        dataset = self.dataset_service.get_dataset(dataset_id)
-
-        resp = GetDatasetResp()
-
-        return success_json(resp.dump(dataset))
-
-    def update_dataset(self, dataset_id: UUID):
-        """更新知识库"""
-
-        req = UpdateDatasetReq()
-        if not req.validate():
-            return validate_error_json(req.errors)
-
-        # 调用服务更新知识库
-        self.dataset_service.update_dataset(dataset_id, req)
-
-        return success_message("更新知识库成功")
-
-    def get_dataset_with_page(self):
-        """获取知识库分页"""
-
-        req = GetDatasetsWithPageReq(request.args)
-        if not req.validate():
-            return validate_error_json(req.errors)
-
-        # 调用服务获取知识库分页
-        datasets, paginator = self.dataset_service.get_datasets_with_page(req)
-
-        resp = GetDatasetsWithPageResp(many=True)
-
-        # 构建分页响应
-        return success_json(PageModel(list=resp.dump(datasets), paginator=paginator))

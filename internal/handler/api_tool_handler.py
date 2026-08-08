@@ -28,6 +28,19 @@ class ApiToolHandler:
 
     api_tool_service: ApiToolService
 
+    def validate_openapi_schema(self):
+        """校验OpenAPI Schema字符串"""
+
+        # 提取请求并校验
+        req = ValidateOpenAPISchemaReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务解析OpenAPI Schema字符串
+        self.api_tool_service.parse_openapi_schema(req.openapi_schema.data)
+
+        return success_message("OpenAPI Schema校验通过")
+
     def create_api_tool_provider(self):
         """创建自定义API工具提供商"""
 
@@ -40,24 +53,6 @@ class ApiToolHandler:
         self.api_tool_service.create_api_tool_provider(req)
 
         return success_message("创建自定义API插件成功")
-
-    def delete_api_tool_provider(self, provider_id: UUID):
-        """删除自定义API工具提供商"""
-
-        self.api_tool_service.delete_api_tool_provider(provider_id)
-
-        return success_message("删除自定义API插件成功")
-
-    def update_api_tool_provider(self, provider_id: UUID):
-        """更新自定义API工具提供商"""
-
-        req = UpdateApiToolProviderReq()
-        if not req.validate():
-            return validate_error_json(req.errors)
-
-        self.api_tool_service.update_api_tool_provider(provider_id, req)
-
-        return success_message("更新自定义API插件成功")
 
     def get_api_tool_provider(self, provider_id: UUID):
         """获取自定义API工具提供商"""
@@ -81,6 +76,24 @@ class ApiToolHandler:
 
         return success_json(PageModel(list=resp.dump(api_tool_provider), paginator=paginator))
 
+    def update_api_tool_provider(self, provider_id: UUID):
+        """更新自定义API工具提供商"""
+
+        req = UpdateApiToolProviderReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.api_tool_service.update_api_tool_provider(provider_id, req)
+
+        return success_message("更新自定义API插件成功")
+
+    def delete_api_tool_provider(self, provider_id: UUID):
+        """删除自定义API工具提供商"""
+
+        self.api_tool_service.delete_api_tool_provider(provider_id)
+
+        return success_message("删除自定义API插件成功")
+
     def get_api_tool(self, provider_id: UUID, tool_name: str):
         """获取自定义API工具"""
 
@@ -89,16 +102,3 @@ class ApiToolHandler:
         resp = GetApiToolResp()
 
         return success_json(resp.dump(api_tool))
-
-    def validate_openapi_schema(self):
-        """校验OpenAPI Schema字符串"""
-
-        # 提取请求并校验
-        req = ValidateOpenAPISchemaReq()
-        if not req.validate():
-            return validate_error_json(req.errors)
-
-        # 调用服务解析OpenAPI Schema字符串
-        self.api_tool_service.parse_openapi_schema(req.openapi_schema.data)
-
-        return success_message("OpenAPI Schema校验通过")

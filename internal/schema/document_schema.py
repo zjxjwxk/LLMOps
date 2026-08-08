@@ -195,15 +195,6 @@ class GetDocumentResp(Schema):
         }
 
 
-class UpdateDocumentNameReq(FlaskForm):
-    """更新文档名称请求"""
-
-    name = StringField("name", validators=[
-        DataRequired("文档名称不能为空"),
-        Length(max=100, message="文档名称长度不能超过100")
-    ])
-
-
 class GetDocumentsWithPageReq(PaginatorReq):
     """获取文档列表分页请求"""
 
@@ -242,3 +233,12 @@ class GetDocumentsWithPageResp(Schema):
             "updated_at": datetime_to_timestamp(data.updated_at),
             "created_at": datetime_to_timestamp(data.created_at),
         }
+
+
+class UpdateDocumentNameReq(FlaskForm):
+    """更新文档名称请求"""
+
+    name = StringField("name", validators=[
+        DataRequired("文档名称不能为空"),
+        Length(max=100, message="文档名称长度不能超过100")
+    ])

@@ -27,12 +27,10 @@ class BaseService:
             self.db.session.add(model_instance)
         return model_instance
 
-    def delete(self, model_instance: Any) -> Any:
-        """删除数据库记录"""
+    def get(self, model: Any, primary_key: Any) -> Optional[Any]:
+        """查询数据库记录"""
 
-        with self.db.auto_commit():
-            self.db.session.delete(model_instance)
-        return model_instance
+        return self.db.session.query(model).get(primary_key)
 
     def update(self, model_instance: Any, **kwargs) -> Any:
         """更新数据库记录"""
@@ -45,7 +43,9 @@ class BaseService:
                     raise FailException("更新数据库记录失败")
         return model_instance
 
-    def get(self, model: Any, primary_key: Any) -> Optional[Any]:
-        """查询数据库记录"""
+    def delete(self, model_instance: Any) -> Any:
+        """删除数据库记录"""
 
-        return self.db.session.query(model).get(primary_key)
+        with self.db.auto_commit():
+            self.db.session.delete(model_instance)
+        return model_instance

@@ -77,29 +77,41 @@ class ApiToolService(BaseService):
                     parameters=method_item.get("parameters", []),
                 )
 
-    def delete_api_tool_provider(self, provider_id: UUID):
-        """删除自定义API工具提供商"""
+    def get_api_tool_provider(self, provider_id: UUID):
+        """获取自定义API工具提供商"""
 
         # TODO: 实现授权认证模块后，完善账户相关逻辑
         account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
 
-        # 查询该工具提供商
+        # 查询该工具的提供商
         api_tool_provider = self.get(ApiToolProvider, provider_id)
 
         # 检查是否为空且是否属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
             raise NotFoundException("该自定义API工具提供商不存在")
 
-        # 开启数据库自动提交
-        with self.db.auto_commit():
-            # 删除该工具提供者的所有工具
-            self.db.session.query(ApiTool).filter(
-                ApiTool.provider_id == provider_id,
-                ApiTool.account_id == account_id,
-            ).delete()
+        return api_tool_provider
 
-            # 删除该工具提供者
-            self.db.session.delete(api_tool_provider)
+    def get_api_tool_providers_with_page(self, req: GetApiToolProvidersWithPageReq) -> tuple[list[Any], Paginator]:
+        """获取自定义API工具提供商分页"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 构建分页查询器
+        paginator = Paginator(db=self.db, req=req)
+
+        # 构建筛选器
+        filters = [ApiToolProvider.account_id == account_id]
+        if req.search_word.data:
+            filters.append(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
+
+        # 分页查询数据
+        api_tool_providers = paginator.paginate(
+            self.db.session.query(ApiToolProvider).filter(*filters).order_by(desc("created_at"))
+        )
+
+        return api_tool_providers, paginator
 
     def update_api_tool_provider(self, provider_id: UUID, req: UpdateApiToolProviderReq):
         """更新自定义API工具提供商"""
@@ -159,41 +171,29 @@ class ApiToolService(BaseService):
                     parameters=method_item.get("parameters", []),
                 )
 
-    def get_api_tool_provider(self, provider_id: UUID):
-        """获取自定义API工具提供商"""
+    def delete_api_tool_provider(self, provider_id: UUID):
+        """删除自定义API工具提供商"""
 
         # TODO: 实现授权认证模块后，完善账户相关逻辑
         account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
 
-        # 查询该工具的提供商
+        # 查询该工具提供商
         api_tool_provider = self.get(ApiToolProvider, provider_id)
 
         # 检查是否为空且是否属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
             raise NotFoundException("该自定义API工具提供商不存在")
 
-        return api_tool_provider
+        # 开启数据库自动提交
+        with self.db.auto_commit():
+            # 删除该工具提供者的所有工具
+            self.db.session.query(ApiTool).filter(
+                ApiTool.provider_id == provider_id,
+                ApiTool.account_id == account_id,
+            ).delete()
 
-    def get_api_tool_providers_with_page(self, req: GetApiToolProvidersWithPageReq) -> tuple[list[Any], Paginator]:
-        """获取自定义API工具提供商分页"""
-
-        # TODO: 实现授权认证模块后，完善账户相关逻辑
-        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
-
-        # 构建分页查询器
-        paginator = Paginator(db=self.db, req=req)
-
-        # 构建筛选器
-        filters = [ApiToolProvider.account_id == account_id]
-        if req.search_word.data:
-            filters.append(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
-
-        # 分页查询数据
-        api_tool_providers = paginator.paginate(
-            self.db.session.query(ApiToolProvider).filter(*filters).order_by(desc("created_at"))
-        )
-
-        return api_tool_providers, paginator
+            # 删除该工具提供者
+            self.db.session.delete(api_tool_provider)
 
     def get_api_tool(self, provider_id, tool_name):
         """获取自定义API工具"""

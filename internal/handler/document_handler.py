@@ -41,19 +41,6 @@ class DocumentHandler:
         resp = CreateDocumentsResp()
         return success_json(resp.dump((documents, batch)))
 
-    def update_document_name(self, dataset_id: UUID, document_id: UUID):
-        """更新文档名称"""
-
-        # 提取请求并校验
-        req = UpdateDocumentNameReq()
-        if not req.validate():
-            return validate_error_json(req.errors)
-
-        # 调用服务更新文档名称
-        self.document_service.update_document(dataset_id, document_id, name=req.name.data)
-
-        return success_message("更新文档名称成功")
-
     def get_document(self, dataset_id: UUID, document_id: UUID):
         """获取文档详情"""
 
@@ -82,3 +69,16 @@ class DocumentHandler:
 
         documents_status = self.document_service.get_documents_status(dataset_id, batch)
         return success_json(documents_status)
+
+    def update_document_name(self, dataset_id: UUID, document_id: UUID):
+        """更新文档名称"""
+
+        # 提取请求并校验
+        req = UpdateDocumentNameReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务更新文档名称
+        self.document_service.update_document(dataset_id, document_id, name=req.name.data)
+
+        return success_message("更新文档名称成功")

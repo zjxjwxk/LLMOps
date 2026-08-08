@@ -108,10 +108,10 @@ class DatasetHandler:
                 "filters": Filter.all_of([
                     Filter.by_property("document_enabled").equal(True),
                     Filter.by_property("segment_enabled").equal(True),
-                    Filter.any_of([
-                        Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b08"),
-                        Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b09"),
-                    ])
+                    # Filter.any_of([
+                    #     Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b08"),
+                    #     Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b09"),
+                    # ])
                 ])
             }
         )

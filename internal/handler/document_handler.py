@@ -15,7 +15,7 @@ from flask import request
 from injector import inject
 
 from internal.schema.document_schema import CreateDocumentsReq, CreateDocumentsResp, GetDocumentResp, \
-    UpdateDocumentNameReq, GetDocumentsWithPageReq, GetDocumentsWithPageResp
+    UpdateDocumentNameReq, GetDocumentsWithPageReq, GetDocumentsWithPageResp, UpdateDocumentEnabledReq
 from internal.service import DocumentService
 from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_json, success_message
@@ -82,3 +82,16 @@ class DocumentHandler:
         self.document_service.update_document(dataset_id, document_id, name=req.name.data)
 
         return success_message("更新文档名称成功")
+
+    def update_document_enabled(self, dataset_id: UUID, document_id: UUID):
+        """更新文档启用状态"""
+
+        # 提取请求并校验
+        req = UpdateDocumentEnabledReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务更新文档启用状态
+        self.document_service.update_document_enabled(dataset_id, document_id, req.enabled.data)
+
+        return success_message("更改文档启用状态成功")

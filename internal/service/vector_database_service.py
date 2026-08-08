@@ -16,8 +16,12 @@ from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_weaviate import WeaviateVectorStore
 from weaviate.client import WeaviateClient
+from weaviate.collections import Collection
 
 from .embeddings_service import EmbeddingsService
+
+# 向量数据库集合名称
+COLLECTION_NAME = "Dataset"
 
 
 @inject
@@ -40,7 +44,7 @@ class VectorDatabaseService:
         # 创建LangChain向量数据库
         self.vector_store = WeaviateVectorStore(
             self.client,
-            index_name="Dataset",
+            index_name=COLLECTION_NAME,
             text_key="text",
             embedding=self.embeddings_service.embeddings
         )
@@ -53,3 +57,7 @@ class VectorDatabaseService:
     def combine_documents(cls, documents: list[Document]) -> str:
         """将文档列表使用换行符进行合并"""
         return "\n\n".join([document.page_content for document in documents])
+
+    @property
+    def collection(self) -> Collection:
+        return self.client.collections.get(COLLECTION_NAME)

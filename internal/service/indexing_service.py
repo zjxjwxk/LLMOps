@@ -19,6 +19,7 @@ from uuid import UUID
 from flask import Flask, current_app
 from injector import inject
 from langchain_core.documents import Document as LangChainDocument
+from redis import Redis
 from sqlalchemy import func
 
 from internal.core.file_extractor import FileExtractor
@@ -32,6 +33,8 @@ from .jieba_service import JiebaService
 from .keyword_table_service import KeywordTableService
 from .process_rule_service import ProcessRuleService
 from .vector_database_service import VectorDatabaseService
+from ..entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED
+from ..exception import NotFoundException
 
 
 @inject
@@ -40,6 +43,7 @@ class IndexingService(BaseService):
     """索引构建服务"""
 
     db: SQLAlchemy
+    redis_client: Redis
     file_extractor: FileExtractor
     process_rule_service: ProcessRuleService
     embedding_service: EmbeddingsService
@@ -79,6 +83,46 @@ class IndexingService(BaseService):
                     error=str(e),
                     stopped_at=datetime.now(),
                 )
+
+    def update_document_enabled(self, document_id: UUID) -> None:
+        """更新文档启用状态至向量数据库"""
+
+        # 构建分布式锁键
+        cache_key = LOCK_DOCUMENT_UPDATE_ENABLED.format(document_id=document_id)
+
+        # 获取文档记录
+        document = self.get(Document, document_id)
+        if document is None:
+            logging.exception(f"当前文档不存在，文档ID：{document_id}")
+            raise NotFoundException("当前文档不存在")
+
+        # 获取文档片段列表对应的节点ID列表
+        segments = self.db.session.query(Segment).with_entities(Segment.node_id).filter(
+            Segment.document_id == document_id
+        ).all()
+        node_ids = [segment.node_id for segment in segments]
+
+        # 更新至向量数据库
+        try:
+            collection = self.vector_database_service.collection
+            for node_id in node_ids:
+                collection.data.update(
+                    uuid=node_id,
+                    properties={
+                        "document_enabled": document.enabled,
+                    }
+                )
+        except Exception as e:
+            logging.exception(f"更新文档启用状态至向量数据库失败，文档ID：{document_id}，错误信息：{str(e)}")
+            origin_enabled = not document.enabled
+            self.update(
+                document,
+                enabled=origin_enabled,
+                disabled_at=None if origin_enabled else datetime.now(),
+            )
+        finally:
+            # 删除分布式锁
+            self.redis_client.delete(cache_key)
 
     def _parsing(self, document: Document) -> list[LangChainDocument]:
         """解析文档实体为LangChain文档列表"""

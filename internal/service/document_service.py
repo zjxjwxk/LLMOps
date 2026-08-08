@@ -12,19 +12,22 @@ import logging
 import random
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from injector import inject
+from redis import Redis
 from sqlalchemy import desc, asc, func
 
-from internal.entity.dataset_entity import ProcessType, SegmentStatus
+from internal.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED, LOCK_EXPIRE_TIME
+from internal.entity.dataset_entity import ProcessType, SegmentStatus, DocumentStatus
 from internal.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
 from internal.exception import ForbiddenException, FailException, NotFoundException
 from internal.lib.helper import datetime_to_timestamp
 from internal.model import Document, Dataset, UploadFile, ProcessRule, Segment
 from internal.schema.document_schema import GetDocumentsWithPageReq
 from internal.service import BaseService
-from internal.task.document_task import build_documents
+from internal.task.document_task import build_documents, update_document_enabled
 from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 
@@ -35,6 +38,7 @@ class DocumentService(BaseService):
     """文档服务"""
 
     db: SQLAlchemy
+    redis_client: Redis
 
     def create_documents(
             self,
@@ -221,6 +225,50 @@ class DocumentService(BaseService):
             raise ForbiddenException("当前用户无权限修改该文档，请检查后重试")
 
         return self.update(document, **kwargs)
+
+    def update_document_enabled(self, dataset_id: UUID, document_id: UUID, enabled: bool) -> Document:
+        """更新文档启用状态（同时异步更新至向量数据库）"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 获取文档并校验权限
+        document = self.get(Document, document_id)
+
+        if document is None:
+            raise NotFoundException("该文档不存在，请检查后重试")
+
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            raise ForbiddenException("当前用户无权限修改该文档，请检查后重试")
+
+        # 判断文档当前是否可启用（仅构建完成后才可启用）
+        if document.status != DocumentStatus.COMPLETED:
+            raise ForbiddenException("当前文档未构建完成，请稍后重试启用")
+
+        # 判断文档启用状态是否需要更新
+        if document.enabled == enabled:
+            raise FailException(f"更新文档启用状态错误，当前已为{'启用' if enabled else '禁用'}状态")
+
+        # 获取分布式锁
+        cache_key = LOCK_DOCUMENT_UPDATE_ENABLED.format(document_id=document.id)
+        cache_result = self.redis_client.get(cache_key)
+        if cache_result is not None:
+            raise FailException("当前文档正在更新启用状态，请稍后重试")
+
+        # 更新文档启用状态至DB
+        self.update(
+            document,
+            enabled=enabled,
+            disabled_at=None if enabled else datetime.now(),
+        )
+
+        # 设置分布式锁，过期时间默认为600秒
+        self.redis_client.setex(cache_key, LOCK_EXPIRE_TIME, 1)
+
+        # 调用异步任务，更新文档启用状态至向量数据库
+        update_document_enabled.delay(document.id)
+
+        return document
 
     def get_latest_document_position(self, dataset_id: UUID) -> int:
         """获取知识库的最新文档位置"""

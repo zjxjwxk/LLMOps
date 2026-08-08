@@ -22,8 +22,10 @@ from internal.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
 from internal.exception import ForbiddenException, FailException, NotFoundException
 from internal.lib.helper import datetime_to_timestamp
 from internal.model import Document, Dataset, UploadFile, ProcessRule, Segment
+from internal.schema.document_schema import GetDocumentsWithPageReq
 from internal.service import BaseService
 from internal.task.document_task import build_documents
+from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 
 
@@ -98,6 +100,23 @@ class DocumentService(BaseService):
 
         return documents, batch
 
+    def update_document(self, dataset_id: UUID, document_id: UUID, **kwargs):
+        """更新文档信息"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 查询文档记录
+        document = self.get(Document, document_id)
+
+        if document is None:
+            raise NotFoundException("该文档不存在，请检查后重试")
+
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            raise ForbiddenException("当前用户无权限修改该文档，请检查后重试")
+
+        return self.update(document, **kwargs)
+
     def get_document(self, dataset_id: UUID, document_id: UUID) -> Document:
         """获取文档详情"""
 
@@ -114,6 +133,38 @@ class DocumentService(BaseService):
             raise ForbiddenException("当前用户无权限查看该文档，请检查后重试")
 
         return document
+
+    def get_documents_with_page(
+            self, dataset_id: UUID,
+            req: GetDocumentsWithPageReq
+    ) -> tuple[list[Document], Paginator]:
+        """获取文档列表分页"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 校验知识库权限
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            raise ForbiddenException("该知识库不存在或当前用户无权访问")
+
+        # 构建分页器
+        paginator = Paginator(db=self.db, req=req)
+
+        # 构建筛选器
+        filters = [
+            Document.account_id == account_id,
+            Document.dataset_id == dataset_id,
+        ]
+        if req.search_word.data:
+            filters.append(Document.name.ilike(f"%{req.search_word.data}%"))
+
+        # 执行分页查询
+        documents = paginator.paginate(
+            self.db.session.query(Document).filter(*filters).order_by(desc("created_at"))
+        )
+
+        return documents, paginator
 
     def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
         """获取文档列表状态（根据知识库和批次）"""

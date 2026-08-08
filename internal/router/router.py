@@ -37,7 +37,7 @@ class Router:
         blue_print.add_url_rule("/app", methods=["POST"], view_func=self.app_handler.create_app)
         blue_print.add_url_rule("/app/<uuid:id>", view_func=self.app_handler.get_app)
         blue_print.add_url_rule("/app/<uuid:id>", methods=["POST"], view_func=self.app_handler.update_app)
-        blue_print.add_url_rule("/app/<uuid:id>", methods=["DELETE"], view_func=self.app_handler.delete_app)
+        blue_print.add_url_rule("/app/<uuid:id>/delete", methods=["POST"], view_func=self.app_handler.delete_app)
 
         # 内置插件广场模块
         blue_print.add_url_rule("/builtin-tools", view_func=self.builtin_tool_handler.get_builtin_tools)
@@ -52,9 +52,9 @@ class Router:
                                 view_func=self.api_tool_handler.validate_openapi_schema)
         blue_print.add_url_rule("/api-tools", methods=["POST"],
                                 view_func=self.api_tool_handler.create_api_tool_provider)
-        blue_print.add_url_rule("/api-tools/<uuid:provider_id>", methods=["DELETE"],
+        blue_print.add_url_rule("/api-tools/<uuid:provider_id>/delete", methods=["POST"],
                                 view_func=self.api_tool_handler.delete_api_tool_provider)
-        blue_print.add_url_rule("/api-tools/<uuid:provider_id>", methods=["PUT"],
+        blue_print.add_url_rule("/api-tools/<uuid:provider_id>", methods=["POST"],
                                 view_func=self.api_tool_handler.update_api_tool_provider)
         blue_print.add_url_rule("/api-tools/<uuid:provider_id>", view_func=self.api_tool_handler.get_api_tool_provider)
         blue_print.add_url_rule("/api-tools", view_func=self.api_tool_handler.get_api_tool_providers_with_page)
@@ -68,7 +68,7 @@ class Router:
 
         # 知识库模块
         blue_print.add_url_rule("/datasets", methods=["POST"], view_func=self.dataset_handler.create_dataset)
-        blue_print.add_url_rule("/datasets/<uuid:dataset_id>", methods=["PUT"],
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>", methods=["POST"],
                                 view_func=self.dataset_handler.update_dataset)
         blue_print.add_url_rule("/datasets", view_func=self.dataset_handler.get_dataset_with_page)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>", view_func=self.dataset_handler.get_dataset)

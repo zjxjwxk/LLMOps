@@ -11,11 +11,14 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from flask import request
 from injector import inject
 
-from internal.schema.document_schema import CreateDocumentsReq, CreateDocumentsResp, GetDocumentResp
+from internal.schema.document_schema import CreateDocumentsReq, CreateDocumentsResp, GetDocumentResp, \
+    UpdateDocumentNameReq, GetDocumentsWithPageReq, GetDocumentsWithPageResp
 from internal.service import DocumentService
-from pkg.response import validate_error_json, success_json
+from pkg.paginator import PageModel
+from pkg.response import validate_error_json, success_json, success_message
 
 
 @inject
@@ -41,7 +44,15 @@ class DocumentHandler:
     def update_document_name(self, dataset_id: UUID, document_id: UUID):
         """更新文档名称"""
 
-        pass
+        # 提取请求并校验
+        req = UpdateDocumentNameReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务更新文档名称
+        self.document_service.update_document(dataset_id, document_id, name=req.name.data)
+
+        return success_message("更新文档名称成功")
 
     def get_document(self, dataset_id: UUID, document_id: UUID):
         """获取文档详情"""
@@ -55,7 +66,16 @@ class DocumentHandler:
     def get_documents_with_page(self, dataset_id: UUID):
         """获取文档列表分页"""
 
-        pass
+        # 提取请求并校验
+        req = GetDocumentsWithPageReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务获取文档列表分页
+        documents, paginator = self.document_service.get_documents_with_page(dataset_id, req)
+
+        resp = GetDocumentsWithPageResp(many=True)
+        return success_json(PageModel(list=resp.dump(documents), paginator=paginator))
 
     def get_documents_status(self, dataset_id: UUID, batch: str):
         """获取文档列表状态（根据知识库和批次）"""

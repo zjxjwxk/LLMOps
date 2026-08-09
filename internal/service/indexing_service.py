@@ -21,9 +21,13 @@ from injector import inject
 from langchain_core.documents import Document as LangChainDocument
 from redis import Redis
 from sqlalchemy import func
+from weaviate.classes.query import Filter
 
 from internal.core.file_extractor import FileExtractor
+from internal.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED, LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE, \
+    LOCK_EXPIRE_TIME
 from internal.entity.dataset_entity import DocumentStatus, SegmentStatus
+from internal.exception import NotFoundException
 from internal.lib.helper import generate_text_hash
 from internal.model import Document, Segment
 from pkg.sqlalchemy import SQLAlchemy
@@ -33,8 +37,6 @@ from .jieba_service import JiebaService
 from .keyword_table_service import KeywordTableService
 from .process_rule_service import ProcessRuleService
 from .vector_database_service import VectorDatabaseService
-from ..entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED
-from ..exception import NotFoundException
 
 
 @inject
@@ -123,6 +125,57 @@ class IndexingService(BaseService):
         finally:
             # 删除分布式锁
             self.redis_client.delete(cache_key)
+
+    def delete_document(self, dataset_id: UUID, document_id: UUID) -> None:
+        """删除文档后续操作：删除文档片段、更新关键词表、删除向量数据库记录"""
+
+        # 获取片段ID列表
+        segments = self.db.session.query(Segment).with_entities(Segment.id).filter(
+            Segment.document_id == document_id
+        ).all()
+        segment_ids = [str(segment.id) for segment in segments]
+
+        # 删除向量数据库记录
+        collection = self.vector_database_service.collection
+        collection.data.delete_many(
+            where=Filter.by_property("document_id").equal(document_id),
+        )
+
+        # 删除DB文档片段记录
+        with self.db.auto_commit():
+            self.db.session.query(Segment).filter(
+                Segment.document_id == document_id
+            ).delete()
+
+        # 更新关键词表
+        # 待删除的片段ID和关键词
+        segment_ids_to_delete = set(segment_ids)
+        keywords_to_delete = set()
+
+        # 获取分布式锁（）
+        cache_key = LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE.format(dataset_id=dataset_id)
+        with self.redis_client.lock(cache_key, timeout=LOCK_EXPIRE_TIME):
+            # 获取当前知识库的关键词表
+            keyword_table_record = self.keyword_table_service.get_keyword_table_from_dataset_id(dataset_id)
+            keyword_table = keyword_table_record.keyword_table.copy()  # 包含引用类型，必须深拷贝后更新，否则框架无法判断是否有更新
+
+            # 删除关键词表中的待删除片段
+            for keyword, segment_ids in keyword_table.items():
+                segment_ids_set = set(segment_ids)
+                # 判断该关键词是否存在待删除片段
+                if segment_ids_to_delete.intersection(segment_ids_set):
+                    # 删除关键词表中的相应片段
+                    keyword_table[keyword] = list(segment_ids_set.difference(segment_ids_to_delete))
+                    # 若该关键词对应片段为空，将该关键词加入待删除集合
+                    if not keyword_table[keyword]:
+                        keywords_to_delete.add(keyword)
+
+            # 删除空关键词
+            for keyword in keywords_to_delete:
+                del keyword_table[keyword]
+
+            # 更新至关键词表DB
+            self.update(keyword_table_record, keyword_table=keyword_table)
 
     def _parsing(self, document: Document) -> list[LangChainDocument]:
         """解析文档实体为LangChain文档列表"""

@@ -26,10 +26,21 @@ def build_documents(document_ids: list[UUID]) -> None:
 
 @shared_task
 def update_document_enabled(document_id: UUID) -> None:
-    """更新文档启用状态"""
+    """更新文档启用状态至向量数据库"""
 
     from app.http.module import injector
     from internal.service.indexing_service import IndexingService
 
     indexing_service = injector.get(IndexingService)
     indexing_service.update_document_enabled(document_id)
+
+
+@shared_task
+def delete_document(dataset_id: UUID, document_id: UUID) -> None:
+    """删除文档后续操作：删除文档片段、更新关键词表、删除向量数据库记录"""
+
+    from app.http.module import injector
+    from internal.service.indexing_service import IndexingService
+
+    indexing_service = injector.get(IndexingService)
+    indexing_service.delete_document(dataset_id, document_id)

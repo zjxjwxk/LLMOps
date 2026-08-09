@@ -99,7 +99,7 @@ class DatasetHandler:
         # return success_json({"keywords": keywords})
 
     def hit(self, dataset_id: UUID):
-        query = "LLMOps关于Flask-SQLAlchemy的相关提示词有哪些？"
+        query = "介绍一下Xinkang？"
         from weaviate.classes.query import Filter
         retriever = self.vector_database_service.vector_store.as_retriever(
             search_type="mmr",

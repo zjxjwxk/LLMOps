@@ -27,7 +27,7 @@ from internal.lib.helper import datetime_to_timestamp
 from internal.model import Document, Dataset, UploadFile, ProcessRule, Segment
 from internal.schema.document_schema import GetDocumentsWithPageReq
 from internal.service import BaseService
-from internal.task.document_task import build_documents, update_document_enabled
+from internal.task.document_task import build_documents, update_document_enabled, delete_document
 from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 
@@ -278,3 +278,30 @@ class DocumentService(BaseService):
         ).order_by(desc("position")).first()
 
         return document.position if document else 0
+
+    def delete_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+        """删除文档（包括删除文档片段、更新关键词表、删除向量数据库记录）"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 获取文档并校验权限
+        document = self.get(Document, document_id)
+
+        if document is None:
+            raise NotFoundException("该文档不存在，请检查后重试")
+
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            raise ForbiddenException("当前用户无权限修改该文档，请检查后重试")
+
+        # 判读文档是否处于可删除状态（构建完成/构建错误）
+        if document.status not in [DocumentStatus.COMPLETED, DocumentStatus.ERROR]:
+            raise FailException("当前文档处于不可删除状态，请稍后重试")
+
+        # 删除文档
+        self.delete(document)
+
+        # 调用异步任务，执行后续操作：删除文档片段、更新关键词表、删除向量数据库记录
+        delete_document.delay(dataset_id, document_id)
+
+        return document

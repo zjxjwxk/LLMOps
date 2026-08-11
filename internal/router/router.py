@@ -12,7 +12,7 @@ from flask import Flask, Blueprint
 from injector import inject
 
 from internal.handler import AppHandler, BuiltinToolHandler, ApiToolHandler, UploadFileHandler, DatasetHandler, \
-    DocumentHandler
+    DocumentHandler, SegmentHandler
 
 
 @inject
@@ -24,6 +24,7 @@ class Router:
     upload_file_handler: UploadFileHandler
     dataset_handler: DatasetHandler
     document_handler: DocumentHandler
+    segment_handler: SegmentHandler
 
     def register_router(self, app: Flask):
         """注册路由"""
@@ -87,6 +88,13 @@ class Router:
                                 view_func=self.document_handler.update_document_enabled)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/delete", methods=["POST"],
                                 view_func=self.document_handler.delete_document)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments",
+                                view_func=self.segment_handler.get_segments_with_page)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>",
+                                view_func=self.segment_handler.get_segment)
+        blue_print.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>/enabled",
+            methods=["POST"], view_func=self.segment_handler.update_segment_enabled)
         blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/hit", methods=["POST"], view_func=self.dataset_handler.hit)
 

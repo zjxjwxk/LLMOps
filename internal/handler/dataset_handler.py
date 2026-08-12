@@ -99,18 +99,18 @@ class DatasetHandler:
         # return success_json({"keywords": keywords})
 
     def hit(self, dataset_id: UUID):
-        query = "介绍一下Xinkang？"
+        query = "LLMOps的接口返回格式是什么？"
         from weaviate.classes.query import Filter
         retriever = self.vector_database_service.vector_store.as_retriever(
             search_type="mmr",
             search_kwargs={
                 "k": 10,
                 "filters": Filter.all_of([
-                    Filter.by_property("document_enabled").equal(True),
-                    Filter.by_property("segment_enabled").equal(True),
+                    Filter.by_property("segment_id").equal("4093005b-180e-4bb2-89a9-c04a8a73ab0a"),
+                    # Filter.by_property("document_id").equal("0072659a-60c3-43c6-bce5-199828bcf063"),
                     # Filter.any_of([
                     #     Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b08"),
-                    #     Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b09"),
+                    #     # Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b09"),
                     # ])
                 ])
             }

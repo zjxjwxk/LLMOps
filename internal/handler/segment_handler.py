@@ -14,10 +14,11 @@ from uuid import UUID
 from flask import request
 from injector import inject
 
-from internal.schema.segment_schema import GetSegmentsWithPageReq, GetSegmentsWithPageResp
+from internal.schema.segment_schema import GetSegmentsWithPageReq, GetSegmentsWithPageResp, GetSegmentResp, \
+    UpdateSegmentEnabledReq
 from internal.service import SegmentService
 from pkg.paginator import PageModel
-from pkg.response import validate_error_json, success_json
+from pkg.response import validate_error_json, success_json, success_message
 
 
 @inject
@@ -44,9 +45,20 @@ class SegmentHandler:
     def get_segment(self, dataset_id: UUID, document_id: UUID, segment_id: UUID):
         """获取文档片段详情"""
 
-        pass
+        segment = self.segment_service.get_segment(dataset_id, document_id, segment_id)
+
+        resp = GetSegmentResp()
+        return success_json(resp.dump(segment))
 
     def update_segment_enabled(self, dataset_id: UUID, document_id: UUID, segment_id: UUID):
         """更新文档片段启用状态"""
 
-        pass
+        # 提取请求并校验
+        req = UpdateSegmentEnabledReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务更新文档片段启用状态
+        self.segment_service.update_segment_enabled(dataset_id, document_id, segment_id, req.enabled.data)
+
+        return success_message("更新文档片段启用状态成功")

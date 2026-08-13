@@ -15,7 +15,7 @@ from flask import request
 from injector import inject
 
 from internal.schema.segment_schema import GetSegmentsWithPageReq, GetSegmentsWithPageResp, GetSegmentResp, \
-    UpdateSegmentEnabledReq
+    UpdateSegmentEnabledReq, CreateSegmentReq
 from internal.service import SegmentService
 from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_json, success_message
@@ -27,6 +27,19 @@ class SegmentHandler:
     """文档片段处理器"""
 
     segment_service: SegmentService
+
+    def create_segment(self, dataset_id: UUID, document_id: UUID):
+        """创建文档片段"""
+
+        # 提取请求并校验
+        req = CreateSegmentReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务创建文档片段
+        self.segment_service.create_segment(dataset_id, document_id, req)
+
+        return success_message("创建文档片段成功")
 
     def get_segments_with_page(self, dataset_id: UUID, document_id: UUID):
         """获取文档片段列表分页"""

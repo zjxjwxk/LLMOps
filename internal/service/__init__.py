@@ -18,22 +18,26 @@ from .jieba_service import JiebaService
 from .keyword_table_service import KeywordTableService
 from .oci_object_storage_service import OciObjectStorageService
 from .process_rule_service import ProcessRuleService
+from .retrieval_service import RetrievalService
 from .segment_service import SegmentService
 from .upload_file_service import UploadFileService
 from .vector_database_service import VectorDatabaseService
 
-__all__ = ["BaseService",
-           "AppService",
-           "BuiltinToolService",
-           "ApiToolService",
-           "OciObjectStorageService",
-           "UploadFileService",
-           "DatasetService",
-           "EmbeddingsService",
-           "VectorDatabaseService",
-           "JiebaService",
-           "DocumentService",
-           "IndexingService",
-           "ProcessRuleService",
-           "KeywordTableService",
-           "SegmentService"]
+__all__ = [
+    "BaseService",
+    "AppService",
+    "BuiltinToolService",
+    "ApiToolService",
+    "OciObjectStorageService",
+    "UploadFileService",
+    "DatasetService",
+    "EmbeddingsService",
+    "VectorDatabaseService",
+    "JiebaService",
+    "DocumentService",
+    "IndexingService",
+    "ProcessRuleService",
+    "KeywordTableService",
+    "SegmentService",
+    "RetrievalService"
+]

@@ -16,11 +16,13 @@ from sqlalchemy import desc
 
 from internal.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
 from internal.exception import ValidationException, NotFoundException
-from internal.model import Dataset
-from internal.schema.dataset_schema import CreateDatasetReq, UpdateDatasetReq, GetDatasetsWithPageReq
+from internal.lib.helper import datetime_to_timestamp
+from internal.model import Dataset, Segment
+from internal.schema.dataset_schema import CreateDatasetReq, UpdateDatasetReq, GetDatasetsWithPageReq, HitReq
 from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from .base_service import BaseService
+from .retrieval_service import RetrievalService
 
 
 @inject
@@ -29,6 +31,7 @@ class DatasetService(BaseService):
     """知识库服务"""
 
     db: SQLAlchemy
+    retrieval_service: RetrievalService
 
     def create_dataset(self, req: CreateDatasetReq) -> Dataset:
         """创建知识库"""
@@ -126,3 +129,69 @@ class DatasetService(BaseService):
         )
 
         return dataset
+
+    def hit(self, dataset_id: UUID, req: HitReq) -> list[dict]:
+        """知识库召回测试"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 检查当前账户是否存在该知识库
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            raise NotFoundException("该知识库不存在")
+
+        # 调用检索服务检索LangChain文档列表（结果已排序）
+        langchain_documents = self.retrieval_service.search_in_datasets(
+            dataset_ids=[dataset_id],
+            **req.data,
+        )
+        langchain_documents_dict = {
+            str(langchain_document.metadata["segment_id"]): langchain_document
+            for langchain_document in langchain_documents
+        }
+
+        # 查询文档片段列表
+        segments = self.db.session.query(Segment).filter(
+            Segment.id.in_(
+                str(langchain_document.metadata["segment_id"]) for langchain_document in langchain_documents),
+        ).all()
+        segment_dict = {str(segment.id): segment for segment in segments}
+
+        # 排序片段列表（根据有序的LangChain文档列表构建）
+        sorted_segments = [
+            segment_dict[str(langchain_document.metadata["segment_id"])]
+            for langchain_document in langchain_documents if
+            str(langchain_document.metadata["segment_id"]) in segment_dict
+        ]
+
+        # 构建响应
+        hit_result = []
+        for segment in sorted_segments:
+            document = segment.document
+            upload_file = document.upload_file
+            hit_result.append({
+                "id": segment.id,
+                "document": {
+                    "id": document.id,
+                    "name": document.name,
+                    "extension": upload_file.extension,
+                    "mime_type": upload_file.mime_type,
+                },
+                "dataset_id": segment.dataset_id,
+                "score": langchain_documents_dict[str(segment.id)].metadata["score"],
+                "position": segment.position,
+                "content": segment.content,
+                "keywords": segment.keywords,
+                "character_count": segment.character_count,
+                "token_count": segment.token_count,
+                "hit_count": segment.hit_count,
+                "enabled": segment.enabled,
+                "disabled_at": datetime_to_timestamp(segment.disabled_at),
+                "status": segment.status,
+                "error": segment.error,
+                "updated_at": datetime_to_timestamp(segment.updated_at),
+                "created_at": datetime_to_timestamp(segment.created_at),
+            })
+
+        return hit_result

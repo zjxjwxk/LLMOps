@@ -17,7 +17,7 @@ from injector import inject
 from internal.core.file_extractor import FileExtractor
 from internal.model import UploadFile
 from internal.schema.dataset_schema import CreateDatasetReq, GetDatasetResp, UpdateDatasetReq, GetDatasetsWithPageReq, \
-    GetDatasetsWithPageResp
+    GetDatasetsWithPageResp, HitReq
 from internal.service import DatasetService, EmbeddingsService, JiebaService, VectorDatabaseService
 from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_message, success_json
@@ -99,28 +99,13 @@ class DatasetHandler:
         # return success_json({"keywords": keywords})
 
     def hit(self, dataset_id: UUID):
-        query = "LLMOps的接口返回格式是什么？"
-        from weaviate.classes.query import Filter
-        retriever = self.vector_database_service.vector_store.as_retriever(
-            search_type="mmr",
-            search_kwargs={
-                "k": 10,
-                "filters": Filter.all_of([
-                    Filter.by_property("segment_id").equal("4093005b-180e-4bb2-89a9-c04a8a73ab0a"),
-                    # Filter.by_property("document_id").equal("0072659a-60c3-43c6-bce5-199828bcf063"),
-                    # Filter.any_of([
-                    #     Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b08"),
-                    #     # Filter.by_property("dataset_id").equal("735369fd-aef6-414a-8e66-11e940d34b09"),
-                    # ])
-                ])
-            }
-        )
+        """知识库召回测试"""
 
-        documents = retriever.invoke(query)
+        # 提取请求并校验
+        req = HitReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
 
-        return success_json({"documents": [
-            {
-                "page_content": document.page_content,
-                "metadata": document.metadata,
-            } for document in documents
-        ]})
+        # 调用服务执行检索
+        hit_result = self.dataset_service.hit(dataset_id, req)
+        return success_json(hit_result)

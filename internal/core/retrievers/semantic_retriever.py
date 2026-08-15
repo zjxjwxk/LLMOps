@@ -54,4 +54,4 @@ class SemanticRetriever(BaseRetriever):
         for langchain_document, score in zip(langchain_documents, scores):
             langchain_document.metadata["score"] = score
 
-        return list[langchain_documents]
+        return list(langchain_documents)

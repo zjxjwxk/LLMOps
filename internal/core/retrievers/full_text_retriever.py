@@ -45,9 +45,9 @@ class FullTextRetriever(BaseRetriever):
         # 找出匹配查询语句关键词列表的片段ID列表
         match_segment_ids = []
         for keyword_table in keyword_tables:
-            for keyword, segment_ids in keyword_table:
+            for keyword, segment_ids in keyword_table.items():
                 if keyword in keywords:
-                    match_segment_ids.append(segment_ids)
+                    match_segment_ids.extend(segment_ids)
 
         # 统计片段ID的出现次数
         segment_id_counter = Counter(match_segment_ids)

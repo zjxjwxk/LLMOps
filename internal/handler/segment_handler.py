@@ -88,3 +88,10 @@ class SegmentHandler:
         self.segment_service.update_segment_enabled(dataset_id, document_id, segment_id, req.enabled.data)
 
         return success_message("更新文档片段启用状态成功")
+
+    def delete_segment(self, dataset_id: UUID, document_id: UUID, segment_id: UUID):
+        """删除文档片段"""
+
+        self.segment_service.delete_segment(dataset_id, document_id, segment_id)
+
+        return success_message("删除文档片段成功")

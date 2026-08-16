@@ -28,7 +28,7 @@ from internal.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED
 from internal.entity.dataset_entity import DocumentStatus, SegmentStatus
 from internal.exception import NotFoundException
 from internal.lib.helper import generate_text_hash
-from internal.model import Document, Segment
+from internal.model import Document, Segment, KeywordTable, DatasetQuery
 from pkg.sqlalchemy import SQLAlchemy
 from .base_service import BaseService
 from .embeddings_service import EmbeddingsService
@@ -171,6 +171,38 @@ class IndexingService(BaseService):
 
         # 删除关键词表中的片段ID列表
         self.keyword_table_service.delete_keyword_table_from_segment_ids(dataset_id, segment_ids)
+
+    def delete_dataset(self, dataset_id: UUID) -> None:
+        """删除知识库后续操作：删除文档记录、片段记录、关键词表记录、知识库查询记录、向量数据库数据"""
+
+        try:
+            with self.db.auto_commit():
+                # 删除文档记录
+                self.db.session.query(Document).filter(
+                    Document.dataset_id == dataset_id
+                ).delete()
+
+                # 删除片段记录
+                self.db.session.query(Segment).filter(
+                    Segment.dataset_id == dataset_id
+                ).delete()
+
+                # 删除关键词表记录
+                self.db.session.query(KeywordTable).filter(
+                    KeywordTable.dataset_id == dataset_id
+                ).delete()
+
+                # 删除知识库查询记录
+                self.db.session.query(DatasetQuery).filter(
+                    DatasetQuery.dataset_id == dataset_id
+                ).delete()
+
+            # 删除向量数据库记录
+            self.vector_database_service.collection.data.delete_many(
+                where=Filter.by_property("dataset_id").equal(str(dataset_id))
+            )
+        except Exception as e:
+            logging.exception(f"删除知识库异步任务失败，dataset_id：{dataset_id}，错误信息：{str(e)}")
 
     def _parsing(self, document: Document) -> list[LangChainDocument]:
         """解析文档实体为LangChain文档列表"""

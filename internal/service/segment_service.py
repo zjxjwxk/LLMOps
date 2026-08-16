@@ -190,7 +190,7 @@ class SegmentService(BaseService):
                 or segment.dataset_id != dataset_id
                 or segment.document_id != document_id
         ):
-            return NotFoundException("该文档片段不存在或当前用户无权访问")
+            raise NotFoundException("该文档片段不存在或当前用户无权访问")
 
         return segment
 
@@ -336,3 +336,53 @@ class SegmentService(BaseService):
                     stopped_at=datetime.now()
                 )
                 raise FailException("更新文档片段启用状态失败，请稍后重试")
+
+    def delete_segment(self, dataset_id: UUID, document_id: UUID, segment_id: UUID) -> Segment:
+        """删除文档片段"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 获取文档片段并校验权限
+        segment = self.get(Segment, segment_id)
+        if (
+                segment is None
+                or str(segment.account_id) != account_id
+                or segment.dataset_id != dataset_id
+                or segment.document_id != document_id
+        ):
+            raise NotFoundException("该文档片段不存在或当前用户无权删除")
+
+        # 判断文档片段当前是否可删除（仅构建完成或失败才可启用）
+        if segment.status not in [SegmentStatus.COMPLETED, SegmentStatus.ERROR]:
+            raise FailException("当前文档片段未构建完成，请稍后重试")
+
+        document = segment.document
+
+        # 删除文档片段
+        self.delete(segment)
+
+        # 删除关键词表中的片段
+        self.keyword_table_service.delete_keyword_table_from_segment_ids(dataset_id, [segment_id])
+
+        # 删除向量数据库中的片段
+        try:
+            self.vector_database_service.collection.data.delete_by_id(str(segment.node_id))
+        except Exception as e:
+            logging.exception(f"删除向量数据库中的文档片段失败，segment_id：{segment_id}，错误信息：{str(e)}")
+
+        # 更新文档信息（字符总数、Token总数）
+        document_character_count, document_token_count = self.db.session.query(
+            func.coalesce(func.sum(Segment.character_count), 0),
+            func.coalesce(func.sum(Segment.token_count), 0),
+        ).filter(
+            Segment.document_id == document.id
+        ).first()
+
+        self.update(
+            document,
+            character_count=document_character_count,
+            token_count=document_token_count,
+        )
+
+        return segment

@@ -75,6 +75,8 @@ class Router:
                                 view_func=self.dataset_handler.get_dataset_queries)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>", methods=["POST"],
                                 view_func=self.dataset_handler.update_dataset)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/delete", methods=["POST"],
+                                view_func=self.dataset_handler.delete_dataset)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/hit", methods=["POST"], view_func=self.dataset_handler.hit)
         blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
 
@@ -104,6 +106,9 @@ class Router:
         blue_print.add_url_rule(
             "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>/enabled",
             methods=["POST"], view_func=self.segment_handler.update_segment_enabled)
+        blue_print.add_url_rule(
+            "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>/delete",
+            methods=["POST"], view_func=self.segment_handler.delete_segment)
 
         # 注册蓝图
         app.register_blueprint(blue_print)

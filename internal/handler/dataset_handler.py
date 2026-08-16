@@ -93,6 +93,12 @@ class DatasetHandler:
 
         return success_message("更新知识库成功")
 
+    def delete_dataset(self, dataset_id: UUID):
+        """删除知识库"""
+
+        self.dataset_service.delete_dataset(dataset_id)
+        return success_message("删除知识库成功")
+
     def embeddings_query(self):
         upload_file = self.db.session.query(UploadFile).get("3eac1be9-c24e-4a85-8c30-4d30cf9f64e0")
         content = self.file_extractor.load(upload_file, True)

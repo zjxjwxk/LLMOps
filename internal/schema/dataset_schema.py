@@ -104,7 +104,7 @@ class GetDatasetsWithPageResp(Schema):
 
 
 class GetDatasetQueriesResp(Schema):
-    """获取知识库查询记录列表响应"""
+    """获取知识库最近查询记录列表响应"""
 
     id = fields.UUID(dump_default="")
     dataset_id = fields.UUID(dump_default="")

@@ -8,6 +8,7 @@
 @Time   :   2026/7/26 15:57
 @File   :   dataset_service.py
 """
+import logging
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -15,14 +16,15 @@ from injector import inject
 from sqlalchemy import desc
 
 from internal.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
-from internal.exception import ValidationException, NotFoundException
+from internal.exception import ValidationException, NotFoundException, FailException
 from internal.lib.helper import datetime_to_timestamp
-from internal.model import Dataset, Segment, DatasetQuery
+from internal.model import Dataset, Segment, DatasetQuery, AppDataset
 from internal.schema.dataset_schema import CreateDatasetReq, UpdateDatasetReq, GetDatasetsWithPageReq, HitReq
 from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from .base_service import BaseService
 from .retrieval_service import RetrievalService
+from ..task.dataset_task import delete_dataset
 
 
 @inject
@@ -213,3 +215,31 @@ class DatasetService(BaseService):
             })
 
         return hit_result
+
+    def delete_dataset(self, dataset_id: UUID) -> Dataset:
+        """删除知识库（包括其应用关联记录、文档记录、片段记录、关键词记录、知识库查询记录、向量数据库数据）"""
+
+        # TODO: 实现授权认证模块后，完善账户相关逻辑
+        account_id = "05a9c691-a5b0-4661-893a-430c760eb8cd"
+
+        # 检查当前账户是否存在该知识库
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            raise NotFoundException("该知识库不存在")
+
+        try:
+            # 删除知识库记录
+            self.delete(dataset)
+
+            # 删除应用知识库关联记录
+            with self.db.auto_commit():
+                self.db.session.query(AppDataset).filter(
+                    AppDataset.dataset_id == dataset_id,
+                ).delete()
+
+            # 调用异步任务，删除文档记录、片段记录、关键词表记录、知识库查询记录、向量数据库数据
+            delete_dataset.delay(dataset_id)
+
+        except Exception as e:
+            logging.exception(f"删除知识库失败，dataset_id：{dataset_id}，错误信息：{str(e)}")
+            raise FailException("删除知识库失败，请稍后重试")

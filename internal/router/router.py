@@ -71,8 +71,12 @@ class Router:
         blue_print.add_url_rule("/datasets", methods=["POST"], view_func=self.dataset_handler.create_dataset)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>", view_func=self.dataset_handler.get_dataset)
         blue_print.add_url_rule("/datasets", view_func=self.dataset_handler.get_dataset_with_page)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/queries",
+                                view_func=self.dataset_handler.get_dataset_queries)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>", methods=["POST"],
                                 view_func=self.dataset_handler.update_dataset)
+        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/hit", methods=["POST"], view_func=self.dataset_handler.hit)
+        blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
 
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents", methods=["POST"],
                                 view_func=self.document_handler.create_documents)
@@ -88,6 +92,7 @@ class Router:
                                 view_func=self.document_handler.update_document_enabled)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/delete", methods=["POST"],
                                 view_func=self.document_handler.delete_document)
+
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments", methods=["POST"],
                                 view_func=self.segment_handler.create_segment)
         blue_print.add_url_rule("/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments",
@@ -99,8 +104,6 @@ class Router:
         blue_print.add_url_rule(
             "/datasets/<uuid:dataset_id>/documents/<uuid:document_id>/segments/<uuid:segment_id>/enabled",
             methods=["POST"], view_func=self.segment_handler.update_segment_enabled)
-        blue_print.add_url_rule("/datasets/embeddings", view_func=self.dataset_handler.embeddings_query)
-        blue_print.add_url_rule("/datasets/<uuid:dataset_id>/hit", methods=["POST"], view_func=self.dataset_handler.hit)
 
         # 注册蓝图
         app.register_blueprint(blue_print)

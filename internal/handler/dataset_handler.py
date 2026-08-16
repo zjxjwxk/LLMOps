@@ -17,7 +17,7 @@ from injector import inject
 from internal.core.file_extractor import FileExtractor
 from internal.model import UploadFile
 from internal.schema.dataset_schema import CreateDatasetReq, GetDatasetResp, UpdateDatasetReq, GetDatasetsWithPageReq, \
-    GetDatasetsWithPageResp, HitReq
+    GetDatasetsWithPageResp, HitReq, GetDatasetQueriesResp
 from internal.service import DatasetService, EmbeddingsService, JiebaService, VectorDatabaseService
 from pkg.paginator import PageModel
 from pkg.response import validate_error_json, success_message, success_json
@@ -72,6 +72,14 @@ class DatasetHandler:
 
         # 构建分页响应
         return success_json(PageModel(list=resp.dump(datasets), paginator=paginator))
+
+    def get_dataset_queries(self, dataset_id: UUID):
+        """获取知识库最近查询记录列表"""
+
+        dataset_queries = self.dataset_service.get_dataset_queries(dataset_id)
+
+        resp = GetDatasetQueriesResp(many=True)
+        return success_json(resp.dump(dataset_queries))
 
     def update_dataset(self, dataset_id: UUID):
         """更新知识库"""

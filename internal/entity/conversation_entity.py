@@ -8,6 +8,8 @@
 @Time   :   2026/8/23 23:07
 @File   :   conversation_entity.py
 """
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 # 摘要总结Prompt模版
@@ -33,7 +35,7 @@ END OF EXAMPLE
 
 新的总结:"""
 
-# 生成对话名称Prompt模版
+# 生成会话名称Prompt模版
 CONVERSATION_NAME_TEMPLATE = "请根据用户对话提炼出主题"
 
 # 生成建议问题Prompt模版
@@ -78,3 +80,19 @@ class SuggestedQuestions(BaseModel):
     生成的内容必须为字符串数组：["问题1", "问题2", "问题3"]"""
 
     questions: list[str] = Field(description="建议问题列表，类型为字符串数组")
+
+
+class InvokeFrom(str, Enum):
+    """调用来源"""
+
+    SERVICE_API = "service_api"  # 开放API服务调用
+    WEB_APP = "web_app"  # Web应用
+    DEBUGGER = "debugger"  # 调试页面
+
+
+class MessageStatus(str, Enum):
+    """消息状态"""
+
+    NORMAL = "normal"  # 正常
+    STOP = "stop"  # 停止
+    ERROR = "error"  # 出错

@@ -8,9 +8,11 @@
 """
 from .api_tool import ApiToolProvider, ApiTool
 from .app import App, AppDataset
+from .conversation import Conversation, Message, MessageAgentThought
 from .dataset import Dataset, Document, Segment, KeywordTable, DatasetQuery, ProcessRule
 from .upload_file import UploadFile
 
 __all__ = ["App", "AppDataset",
            "ApiToolProvider", "ApiTool", "UploadFile",
-           "Dataset", "Document", "Segment", "KeywordTable", "DatasetQuery", "ProcessRule"]
+           "Dataset", "Document", "Segment", "KeywordTable", "DatasetQuery", "ProcessRule",
+           "Conversation", "Message", "MessageAgentThought"]

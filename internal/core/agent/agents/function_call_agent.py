@@ -143,8 +143,8 @@ class FunctionCallAgent(BaseAgent):
                 elif chunk.content:
                     generation_type = "message"
 
-            # 若为消息类型，则为每个Chunk添加消息事件
-            if generation_type == "message":
+            # 若为消息类型，且消息内容不为空，则为Chunk添加消息事件
+            if generation_type == "message" and chunk.content:
                 self.agent_queue_manager.publish(AgentQueueEvent(
                     id=id,
                     task_id=self.agent_queue_manager.task_id,

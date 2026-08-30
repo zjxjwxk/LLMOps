@@ -43,7 +43,7 @@ class FunctionCallAgent(BaseAgent):
                     "messages": [HumanMessage(content=query)],
                     "history": history,
                     "long_term_memory": long_term_memory
-                }
+                },
             )
         )
         thread.start()

@@ -6,10 +6,11 @@
 @Time   :   2026/2/21 17:31
 @File   :   app_handler.py
 """
+import json
 import uuid
 from dataclasses import dataclass
 from operator import itemgetter
-from typing import Dict, Any
+from typing import Dict, Any, Generator
 from uuid import UUID
 
 from injector import inject
@@ -22,12 +23,17 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda, RunnableConfig
 from langchain_core.tracers import Run
 from langchain_openai import ChatOpenAI
+from redis import Redis
 
+from internal.core.agent.agents import FunctionCallAgent
+from internal.core.agent.agents.agent_queue_manager import AgentQueueManager
+from internal.core.agent.entities.agent_entity import AgentConfig
+from internal.core.tools.builtin_tools.providers import BuiltinProviderManager
+from internal.entity.conversation_entity import InvokeFrom
 from internal.schema.app_schema import CompletionReq
-from internal.service import AppService, ApiToolService
+from internal.service import AppService, ApiToolService, ConversationService
 from internal.service.vector_database_service import VectorDatabaseService
-from internal.task.demo_task import demo_task
-from pkg.response import validate_error_json, success_json, success_message
+from pkg.response import validate_error_json, success_json, success_message, compact_generate_response
 
 
 @inject
@@ -38,6 +44,9 @@ class AppHandler:
     appService: AppService
     vector_database_service: VectorDatabaseService
     api_tool_service: ApiToolService
+    builtin_provider_manager: BuiltinProviderManager
+    conversation_service: ConversationService
+    redis_client: Redis
 
     def create_app(self):
         """创建应用"""
@@ -60,6 +69,55 @@ class AppHandler:
         return success_message(f"应用删除成功，id={app.id}")
 
     def debug(self, app_id: UUID):
+        """应用会话调试接口，流式事件输出"""
+
+        # 提取请求并校验
+        req = CompletionReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 定义工具列表
+        tools = [
+            self.builtin_provider_manager.get_tool("google", "google_serper")(),
+            self.builtin_provider_manager.get_tool("amap", "amap_weather")(),
+            self.builtin_provider_manager.get_tool("wikipedia", "wikipedia_search")(),
+        ]
+
+        # 构建工具调用Agent
+        agent = FunctionCallAgent(
+            AgentConfig(
+                llm=ChatOpenAI(),
+                enable_long_term_memory=True,
+                tools=tools
+            ),
+            AgentQueueManager(
+                user_id=uuid.uuid4(),
+                task_id=uuid.uuid4(),
+                invoke_from=InvokeFrom.DEBUGGER,
+                redis_client=self.redis_client
+            )
+        )
+
+        def stream_event_response() -> Generator:
+            """流式事件输出响应"""
+
+            for agent_queue_event in agent.run(req.query.data, [], "用户介绍自己叫Xinkang"):
+                data = {
+                    "id": str(agent_queue_event.id),
+                    "task_id": str(agent_queue_event.task_id),
+                    "event": agent_queue_event.event,
+                    "thought": agent_queue_event.thought,
+                    "observation": agent_queue_event.observation,
+                    "tool": agent_queue_event.tool,
+                    "tool_input": agent_queue_event.tool_input,
+                    "answer": agent_queue_event.answer,
+                    "latency": agent_queue_event.latency
+                }
+                yield f"event: {agent_queue_event.event}\ndata: {json.dumps(data)}\n\n"
+
+        return compact_generate_response(stream_event_response())
+
+    def _debug(self, app_id: UUID):
         """聊天接口"""
 
         # 从POST请求中获取输入并校验
@@ -102,8 +160,44 @@ class AppHandler:
         return success_json({"content": content})
 
     def ping(self):
-        demo_task.delay(uuid.uuid4())
-        return self.api_tool_service.api_tool_invoke()
+        # 测试延迟任务
+
+        # demo_task.delay(uuid.uuid4())
+        # return self.api_tool_service.api_tool_invoke()
+
+        # 测试总结历史消息
+
+        # human_message = "你好，我叫Xinkang，你是？"
+        # ai_message = "你好，我是大语言模型，有什么可以帮到你的？"
+        # old_summary = "人类要求介绍 LLM 和 Agent 的概念。AI 解释称，LLM 是类似于“超级大脑”的大语言模型，擅长推理和生成但无法直接行动；而 Agent 则是基于 LLM 并配备了工具和记忆的智能体，如同“拥有手脚的实习生”，能够自主规划并执行任务，两者结合实现了从“思考”到“行动”的闭环。"
+        # summary = self.conversation_service.summary(human_message, ai_message, old_summary)
+        # return success_json({"summary": summary})
+
+        # 测试生成会话名称
+
+        # human_message = "介绍一下LLM和Agent的区别？"
+        # conversation_name = self.conversation_service.generate_conversation_name(human_message)
+        # return success_json({"conversation_name": conversation_name})
+
+        # 测试生成建议问题
+
+        # human_message = "介绍一下什么是LLM？LLM是大语言模型的简称。"
+        # questions = self.conversation_service.generate_suggested_questions(human_message)
+        # return success_json({"questions": questions})
+
+        # 测试Agent调用
+
+        from internal.core.agent.agents import FunctionCallAgent
+        from internal.core.agent.entities.agent_entity import AgentConfig
+
+        agent = FunctionCallAgent(AgentConfig(
+            llm=ChatOpenAI(),
+            preset_prompt="你是一个拥有20年经验的诗人，请根据用户提供的主题来写一首诗"
+        ))
+        state = agent.run("程序员", [], "")
+        content = state["messages"][-1].content
+
+        return success_json({"content": content})
 
     @classmethod
     def _load_memory_variables(cls, input: Dict[str, Any], config: RunnableConfig) -> Dict[str, Any]:

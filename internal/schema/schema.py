@@ -24,7 +24,7 @@ class ListField(Field):
 
 
 class DictField(Field):
-    """自定义Dict字段，表示列表数据"""
+    """自定义Dict字段，表示字典数据"""
     data: dict = None
 
     def process_formdata(self, valuelist):

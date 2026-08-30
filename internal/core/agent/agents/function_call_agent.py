@@ -7,14 +7,19 @@
 @File   :   function_call_agent.py
 """
 import json
+import time
+import uuid
+from threading import Thread
 from typing import Literal
 
-from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, RemoveMessage, ToolMessage
+from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, RemoveMessage, ToolMessage, \
+    messages_to_dict
 from langgraph.constants import END
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 
 from internal.core.agent.agents.base_agent import BaseAgent
 from internal.core.agent.entities.agent_entity import AgentState, AGENT_SYSTEM_PROMPT_TEMPLATE
+from internal.core.agent.entities.queue_entity import AgentQueueEvent, QueueEvent
 from internal.exception import FailException
 
 
@@ -30,12 +35,21 @@ class FunctionCallAgent(BaseAgent):
         # 构建Agent
         agent = self._build_graph()
 
-        # 调用Agent
-        return agent.invoke({
-            "messages": [HumanMessage(content=query)],
-            "history": history,
-            "long_term_memory": long_term_memory
-        })
+        # 异步线程调用Agent
+        thread = Thread(
+            target=agent.invoke,
+            args=(
+                {
+                    "messages": [HumanMessage(content=query)],
+                    "history": history,
+                    "long_term_memory": long_term_memory
+                }
+            )
+        )
+        thread.start()
+
+        # 调用事件队列管理器监听事件数据
+        yield from self.agent_queue_manager.listen()
 
     def _build_graph(self) -> CompiledStateGraph:
         """构建LangGraph图结构编译程序"""
@@ -65,6 +79,12 @@ class FunctionCallAgent(BaseAgent):
         long_term_memory = ""
         if self.agent_config.enable_long_term_memory:
             long_term_memory = state["long_term_memory"]
+            self.agent_queue_manager.publish(AgentQueueEvent(
+                id=uuid.uuid4(),
+                task_id=self.agent_queue_manager.task_id,
+                event=QueueEvent.LONG_TERM_MEMORY_RECALL,
+                observation=long_term_memory
+            ))
 
         # 构建预设消息列表
         preset_messages = [
@@ -93,6 +113,10 @@ class FunctionCallAgent(BaseAgent):
     def _llm_node(self, state: AgentState) -> AgentState:
         """LLM节点"""
 
+        # 初始化事件参数
+        id = uuid.uuid4()
+        start_at = time.perf_counter()
+
         # 获取LLM
         llm = self.agent_config.llm
 
@@ -100,15 +124,49 @@ class FunctionCallAgent(BaseAgent):
         if hasattr(llm, "bind_tools") and callable(getattr(llm, "bind_tools")) and len(self.agent_config.tools) > 0:
             llm.bind_tools(self.agent_config.tools)
 
+        gathered = None  # 合并Chunk
+        is_first_chunk = True  # 是否为第一个Chunk
+        generation_type = ""  # 生成类型
+
         # 流式调用LLM
-        gathered = None
-        is_first_chunk = True
         for chunk in llm.stream(state["messages"]):
             if is_first_chunk:
                 gathered = chunk
                 is_first_chunk = False
             else:
                 gathered += chunk
+
+            # 判断生成类型（工具调用->推理，消息内容->消息）
+            if not generation_type:
+                if chunk.tool_calls:
+                    generation_type = "thought"
+                elif chunk.content:
+                    generation_type = "message"
+
+            # 若为消息类型，则为每个Chunk添加消息事件
+            if generation_type == "message":
+                self.agent_queue_manager.publish(AgentQueueEvent(
+                    id=id,
+                    task_id=self.agent_queue_manager.task_id,
+                    event=QueueEvent.AGENT_MESSAGE,
+                    thought=chunk.content,
+                    messages=messages_to_dict(state["messages"]),
+                    answer=chunk.content,
+                    latency=time.perf_counter() - start_at,
+                ))
+
+        # 若为推理类型，则添加推理事件
+        if generation_type == "thought":
+            self.agent_queue_manager.publish(AgentQueueEvent(
+                id=id,
+                task_id=self.agent_queue_manager.task_id,
+                event=QueueEvent.AGENT_THOUGHT,
+                messages=messages_to_dict(state["messages"]),
+                latency=time.perf_counter() - start_at,
+            ))
+        elif generation_type == "message":
+            # 若为消息类型，则表示为最终回答，停止监听
+            self.agent_queue_manager.stop_listen()
 
         return {"messages": [gathered]}
 
@@ -123,6 +181,10 @@ class FunctionCallAgent(BaseAgent):
 
         messages = []
         for tool_call in tool_calls:
+            # 初始化事件参数
+            id = uuid.uuid4()
+            start_at = time.perf_counter()
+
             # 调用对应工具
             tool = tools_by_name[tool_call["name"]]
             tool_result = tool.invoke(tool_call["args"])
@@ -132,6 +194,22 @@ class FunctionCallAgent(BaseAgent):
                 tool_call_id=tool_call["id"],
                 content=json.dumps(tool_result),
                 name=tool_call["name"],
+            ))
+
+            # 判断事件类型（工具名称 => 知识库检索 ｜ Agent动作）
+            if tool_call["name"] == "dataset_retrieval":
+                event = QueueEvent.DATASET_RETRIEVAL
+            else:
+                event = QueueEvent.AGENT_ACTION
+
+            self.agent_queue_manager.publish(AgentQueueEvent(
+                id=id,
+                task_id=self.agent_queue_manager.task_id,
+                event=event,
+                observation=json.dumps(tool_result),
+                tool=tool_call["name"],
+                tool_input=tool_call["args"],
+                latency=time.perf_counter() - start_at,
             ))
 
         return {"messages": messages}

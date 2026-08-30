@@ -20,11 +20,11 @@ from internal.exception import ValidationException, NotFoundException, FailExcep
 from internal.lib.helper import datetime_to_timestamp
 from internal.model import Dataset, Segment, DatasetQuery, AppDataset
 from internal.schema.dataset_schema import CreateDatasetReq, UpdateDatasetReq, GetDatasetsWithPageReq, HitReq
+from internal.task.dataset_task import delete_dataset
 from pkg.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from .base_service import BaseService
 from .retrieval_service import RetrievalService
-from ..task.dataset_task import delete_dataset
 
 
 @inject

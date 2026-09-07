@@ -64,7 +64,9 @@ class OciObjectStorageService:
                 namespace_name=bucket_namespace,
                 bucket_name=bucket_name,
                 object_name=upload_file_name,
-                put_object_body=file_content)
+                put_object_body=file_content,
+                content_type=file.mimetype
+            )
         except Exception as e:
             raise FailException("上传文件失败，请稍后重试")
 
